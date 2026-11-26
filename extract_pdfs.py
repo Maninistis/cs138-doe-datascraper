@@ -7,7 +7,8 @@ from rapidocr_onnxruntime import RapidOCR
 
 INPUT_FOLDER = Path("pdfs")
 OUTPUT_DIR = Path("extracted")
-SKIP_EXISTING = True
+SKIP_EXISTING = False
+MASTER_ORDER_CSV = Path("master_order.csv")
 KEY_COLS = ["Region", "Province", "City", "Product"]
 
 REGION_ORDER = [
@@ -252,6 +253,7 @@ def find_column_bounds(words, fallback_bounds=None):
     header_bottom = 0
     prov_max = None
     common_min_x = None
+    overall_min_x = None
 
     if prov_word:
         hy = prov_word["top"]
@@ -263,8 +265,11 @@ def find_column_bounds(words, fallback_bounds=None):
         prod_words = [w for w in header_band if "PRODUCT" in w["text"].upper()]
         common_words = [
             w for w in header_band
-            if ("COMMON" in w["text"].upper() or "COM" == w["text"].upper())
-            and w["x0"] > 500
+            if "COMMON" in w["text"].upper()
+        ]
+        overall_words = [
+            w for w in header_band
+            if w["text"].upper() in {"OVERALL", "RANGE"}
         ]
 
         header_bottom = max(
@@ -273,7 +278,11 @@ def find_column_bounds(words, fallback_bounds=None):
         if city_words:
             prov_max = (prov_word["x1"] + min(w["x0"] for w in city_words)) / 2
         if common_words:
-            common_min_x = min(w["x0"] for w in common_words) - 15
+            # Start of the COMMON column, slightly left of its header text.
+            common_min_x = min(w["x0"] for w in common_words) - 8
+        if overall_words:
+            # The OVERALL RANGE column is immediately to the left of COMMON.
+            overall_min_x = min(w["x0"] for w in overall_words) - 12
 
     body_prod_x0 = [
         w["x0"] for w in words
@@ -288,10 +297,13 @@ def find_column_bounds(words, fallback_bounds=None):
         if common_min_x is None:
             max_x = max(w["x1"] for w in words)
             common_min_x = fallback_bounds["common_min_x"] if fallback_bounds else max_x - 75
+        if overall_min_x is None:
+            overall_min_x = fallback_bounds["overall_min_x"] if fallback_bounds else common_min_x - 85
         return {
             "prov_max": prov_max,
             "city_max": prod_x0 - 4,
             "prod_max": prod_x0 + 85,
+            "overall_min_x": overall_min_x,
             "common_min_x": common_min_x,
             "header_bottom": header_bottom,
         }
@@ -322,23 +334,39 @@ def parse_price_token(token):
     return float(match.group()) if match else None
 
 
-def extract_common_price_from_band(band_words, line, common_min_x):
-    right_words = [
-        w for w in sorted(band_words, key=lambda x: x["x0"])
-        if (w["x0"] + w["x1"]) / 2 >= common_min_x
-    ]
-    for w in reversed(right_words):
-        val = parse_price_token(w["text"])
-        if val is not None:
-            return val
+def extract_common_price_from_band(band_words, line, overall_min_x, common_min_x):
+    """Choose COMMON first; otherwise use the midpoint of OVERALL RANGE.
 
-    if line:
-        for w in reversed(line):
-            val = parse_price_token(w["text"])
-            if val is not None:
-                return val
+    A blank/dash cell is missing data. Never fall back to unrelated numbers
+    elsewhere on the product row (e.g. brand or independent-station columns).
+    """
+    ordered = sorted(band_words, key=lambda x: x["x0"])
 
-    return "-"
+    # 1) COMMON overrides all other values when it contains a valid price.
+    common_values = []
+    for w in ordered:
+        center = (w["x0"] + w["x1"]) / 2
+        if center >= common_min_x:
+            value = parse_price_token(w["text"])
+            if value is not None:
+                common_values.append(value)
+    if common_values:
+        return common_values[-1]
+
+    # 2) Otherwise, derive a value only from the OVERALL RANGE column.
+    range_values = []
+    for w in ordered:
+        center = (w["x0"] + w["x1"]) / 2
+        if overall_min_x <= center < common_min_x:
+            # A range may be split across separate text boxes, e.g. 82.15 - 89.60.
+            found = re.findall(r"\d+(?:\.\d+)?", w["text"].replace(",", ""))
+            range_values.extend(float(v) for v in found)
+
+    if not range_values:
+        return "-"
+    if len(range_values) == 1:
+        return range_values[0]
+    return round((min(range_values) + max(range_values)) / 2, 2)
 
 
 def join_place(words, is_province=False):
@@ -358,17 +386,98 @@ def join_place(words, is_province=False):
     return s
 
 
-def sort_df(df):
-    region_rank = {r: i for i, r in enumerate(REGION_ORDER)}
-    product_rank = {p: i for i, p in enumerate(PRODUCT_ORDER)}
-    df = df.copy()
-    df["_r"] = df["Region"].map(lambda x: region_rank.get(x, 999))
-    df["_p"] = df["Product"].map(lambda x: product_rank.get(x, 999))
-    df = df.sort_values(
-        by=["_r", "Region", "Province", "City", "_p"],
-        kind="stable",
-    )
-    return df.drop(columns=["_r", "_p"]).reset_index(drop=True)
+
+def normalize_key(value):
+    """Normalize a location/product label for matching against the master template."""
+    return re.sub(r"[^A-Z0-9]", "", str(value or "").upper())
+
+
+def load_master_template():
+    if not MASTER_ORDER_CSV.exists():
+        raise FileNotFoundError(
+            f"Missing {MASTER_ORDER_CSV}. Keep master_order.csv beside this script."
+        )
+    template = pd.read_csv(MASTER_ORDER_CSV, dtype=str).fillna("")
+    required = KEY_COLS
+    missing = [c for c in required if c not in template.columns]
+    if missing:
+        raise ValueError(f"{MASTER_ORDER_CSV} is missing columns: {missing}")
+    template = template[KEY_COLS].copy()
+    for col in KEY_COLS:
+        template[col] = template[col].astype(str).str.strip().str.upper()
+    return template.drop_duplicates(KEY_COLS, keep="first").reset_index(drop=True)
+
+
+def apply_master_order(df, week_col, master_template):
+    """Canonicalize extracted city names globally, classify by province, and
+    return only master-template keys in the exact master order.
+
+    City is the strongest location signal in this Visayas sheet: OCR can shift
+    province labels vertically or carry a previous province into the next block.
+    Therefore, a unique city match in the master overrides the extracted province.
+    Unknown/ambiguous locations are excluded rather than guessed.
+    """
+    template = master_template.copy()
+    if df.empty:
+        return template.assign(**{week_col: "-"})[KEY_COLS + [week_col]]
+
+    def norm(value):
+        return normalize_key(value)
+
+    # Build city -> canonical location lookup. Only unique city names are safe
+    # to resolve without a reliable province label.
+    city_groups = {}
+    for _, row in template.drop_duplicates(["Province", "City"]).iterrows():
+        city_groups.setdefault(norm(row["City"]), []).append((row["Region"], row["Province"], row["City"]))
+
+    canonical_rows = []
+    for _, row in df.iterrows():
+        city_key = norm(row.get("City", ""))
+        province_key = norm(row.get("Province", ""))
+        candidates = city_groups.get(city_key, [])
+        chosen = None
+        if len(candidates) == 1:
+            chosen = candidates[0]
+        elif len(candidates) > 1:
+            matches = [x for x in candidates if norm(x[1]) == province_key]
+            if len(matches) == 1:
+                chosen = matches[0]
+        if chosen is None:
+            continue
+        region, province, city = chosen
+        canonical_rows.append({
+            "Region": region, "Province": province, "City": city,
+            "Product": str(row.get("Product", "")).strip().upper(),
+            week_col: row.get(week_col, "-"),
+        })
+
+    working = pd.DataFrame(canonical_rows, columns=KEY_COLS + [week_col])
+    if working.empty:
+        return template.assign(**{week_col: "-"})[KEY_COLS + [week_col]]
+    working = working.drop_duplicates(KEY_COLS, keep="first")
+    result = template.merge(working, on=KEY_COLS, how="left", sort=False)
+    result[week_col] = result[week_col].fillna("-").replace("", "-")
+    return result[KEY_COLS + [week_col]]
+
+
+PROVINCE_TO_REGION = {
+    "AKLAN": "Western Visayas (REGION VI)", "ANTIQUE": "Western Visayas (REGION VI)",
+    "CAPIZ": "Western Visayas (REGION VI)", "GUIMARAS": "Western Visayas (REGION VI)",
+    "ILOILO": "Western Visayas (REGION VI)", "ILOILO CITY": "Western Visayas (REGION VI)",
+    "BOHOL": "Central Visayas (REGION VII)", "CEBU": "Central Visayas (REGION VII)",
+    "BILIRAN": "Eastern Visayas (REGION VIII)", "EASTERN SAMAR": "Eastern Visayas (REGION VIII)",
+    "LEYTE": "Eastern Visayas (REGION VIII)", "NORTHERN SAMAR": "Eastern Visayas (REGION VIII)",
+    "SAMAR": "Eastern Visayas (REGION VIII)", "WESTERN SAMAR": "Eastern Visayas (REGION VIII)",
+    "SOUTHERN LEYTE": "Eastern Visayas (REGION VIII)",
+    "NEGROS OCCIDENTAL": "Negros Island Region (NIR)",
+    "NEGROS ORIENTAL": "Negros Island Region (NIR)", "SIQUIJOR": "Negros Island Region (NIR)",
+}
+
+def region_for_province(province):
+    key = clean_text(province).upper()
+    key = re.sub(r"\s+", " ", key).strip()
+    return PROVINCE_TO_REGION.get(key, "")
+
 
 
 def parse_pdf(pdf_path, week_col):
@@ -407,9 +516,8 @@ def parse_pdf(pdf_path, week_col):
             y_tol = 5.0 if source == "ocr" else 3.5
             lines = group_words_into_lines(words, y_tol=y_tol)
 
-            region = extract_region(lines) or last_region
-            if region:
-                last_region = region
+            # Region is assigned from the canonical province after city matching;
+            # page headers such as "REGIONS 6-8 & NIR" are not a valid region.
 
             bounds = find_column_bounds(words, fallback_bounds=last_bounds)
             if not bounds:
@@ -421,6 +529,7 @@ def parse_pdf(pdf_path, week_col):
             city_max = bounds["city_max"]
             prod_max = bounds["prod_max"]
             common_min_x = bounds["common_min_x"]
+            overall_min_x = bounds["overall_min_x"]
             header_bottom = bounds["header_bottom"]
 
             body_words = [w for w in words if w["top"] > header_bottom + 1]
@@ -436,11 +545,19 @@ def parse_pdf(pdf_path, week_col):
                 if not prod:
                     continue
 
+                # Product rows in the DOE spreadsheet PDF are tightly spaced
+                # (about 4 points apart). A +/-4pt band mixes adjacent products.
+                # Match only words centered on this product row instead.
+                row_center = (y_top + y_bot) / 2
+                row_center_tolerance = 1.35
                 band_words = [
                     w for w in body_words
-                    if (y_top - 4.0) <= ((w["top"] + w["bottom"]) / 2) <= (y_bot + 4.0)
+                    if abs(((w["top"] + w["bottom"]) / 2) - row_center)
+                    <= row_center_tolerance
                 ]
-                price = extract_common_price_from_band(band_words, line, common_min_x)
+                price = extract_common_price_from_band(
+                    band_words, line, overall_min_x, common_min_x
+                )
 
                 product_rows.append({
                     "top": y_top,
@@ -493,7 +610,8 @@ def parse_pdf(pdf_path, week_col):
 
                 for row in block:
                     records.append({
-                        "Region": region,
+                        # Filled from the canonical city/province in apply_master_order.
+                        "Region": "",
                         "Province": prov_name,
                         "City": city_name,
                         "Product": row["product"],
@@ -505,8 +623,10 @@ def parse_pdf(pdf_path, week_col):
     fitz_doc.close()
     df = pd.DataFrame(records, columns=KEY_COLS + [week_col])
     df = df.drop_duplicates(subset=KEY_COLS, keep="first")
-    return sort_df(df)
+    return apply_master_order(df, week_col, MASTER_TEMPLATE)
 
+
+MASTER_TEMPLATE = load_master_template()
 
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 pdf_files = sorted(INPUT_FOLDER.glob("*.pdf"))
