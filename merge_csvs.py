@@ -16,10 +16,10 @@ MONTH_MAP = {
     "NOVEMBER": 11, "DEC": 12, "DECEMBER": 12,
 }
 REGION_FILES = {
-    "Western Visayas (REGION VI)": "region_vi_western_visayas.csv",
-    "Central Visayas (REGION VII)": "region_vii_central_visayas.csv",
-    "Eastern Visayas (REGION VIII)": "region_viii_eastern_visayas.csv",
-    "Negros Island Region (NIR)": "nir_negros_island_region.csv",
+    "Region VI": "region_vi.csv",
+    "Region VII": "region_vii.csv",
+    "Region VIII": "region_viii.csv",
+    "NIR": "nir.csv",
 }
 
 
