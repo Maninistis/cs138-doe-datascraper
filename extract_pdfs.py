@@ -1,9 +1,9 @@
 import re
+import statistics
 from pathlib import Path
 import fitz
 import pandas as pd
 import pdfplumber
-from rapidocr_onnxruntime import RapidOCR
 
 INPUT_FOLDER = Path("pdfs")
 OUTPUT_DIR = Path("extracted")
@@ -70,6 +70,14 @@ ocr_engine = None
 def get_ocr_engine():
     global ocr_engine
     if ocr_engine is None:
+        try:
+            from rapidocr_onnxruntime import RapidOCR
+        except ImportError as exc:
+            raise RuntimeError(
+                "OCR fallback is required for this scanned page, but "
+                "rapidocr-onnxruntime is not installed. Install it with: "
+                "pip install rapidocr-onnxruntime"
+            ) from exc
         ocr_engine = RapidOCR()
     return ocr_engine
 
@@ -279,10 +287,24 @@ def find_column_bounds(words, fallback_bounds=None):
             prov_max = (prov_word["x1"] + min(w["x0"] for w in city_words)) / 2
         if common_words:
             # Start of the COMMON column, slightly left of its header text.
-            common_min_x = min(w["x0"] for w in common_words) - 8
+            # Estimate the actual cell boundary from the gap between the
+            # OVERALL RANGE and COMMON PRICE header labels.
+            common_header_left = min(w["x0"] for w in common_words)
+            overall_header_right = max(
+                (w["x1"] for w in header_band
+                 if w["text"].upper() in {"OVERALL", "RANGE"}),
+                default=common_header_left - 20,
+            )
+            common_min_x = (overall_header_right + common_header_left) / 2
         if overall_words:
             # The OVERALL RANGE column is immediately to the left of COMMON.
-            overall_min_x = min(w["x0"] for w in overall_words) - 12
+            overall_header_left = min(w["x0"] for w in overall_words)
+            independent_right = max(
+                (w["x1"] for w in header_band
+                 if "INDEPENDENT" in w["text"].upper()),
+                default=overall_header_left - 20,
+            )
+            overall_min_x = (independent_right + overall_header_left) / 2
 
     body_prod_x0 = [
         w["x0"] for w in words
@@ -385,6 +407,29 @@ def join_place(words, is_province=False):
             return PROVINCE_FIXES[compact]
     return s
 
+
+
+
+def resolve_city_name(words, master_template):
+    """Resolve a city from text inside the city column using master-order names.
+
+    Merged province cells and repeated table headers can leak into the city
+    column's vertical band. Matching against known city names prevents those
+    labels from being concatenated into invalid locations.
+    """
+    text_key = normalize_key(" ".join(w["text"] for w in words))
+    if not text_key:
+        return ""
+    cities = sorted(
+        {str(v).strip().upper() for v in master_template["City"].tolist() if str(v).strip()},
+        key=lambda value: len(normalize_key(value)),
+        reverse=True,
+    )
+    matches = [
+        city for city in cities
+        if normalize_key(city) and normalize_key(city) in text_key
+    ]
+    return matches[0] if matches else join_place(words, is_province=False)
 
 
 def normalize_key(value):
@@ -490,21 +535,23 @@ def parse_pdf(pdf_path, week_col):
         last_bounds = None
 
         for idx, page in enumerate(pdf.pages):
-            source = "pdfplumber"
-            words = page.extract_words(
-                x_tolerance=1.5,
-                y_tolerance=2,
-                keep_blank_chars=False,
-                use_text_flow=False,
-            )
-
-            if len(words) < 15:
-                fitz_words = extract_fitz_words(fitz_doc[idx])
-                if len(fitz_words) >= 15:
-                    words = fitz_words
-                    source = "fitz"
-                else:
-                    words = ocr_page_to_words(fitz_doc[idx])
+            # Prefer PyMuPDF's native word boxes. For DOE PDFs with an embedded
+            # text layer, these boxes align more consistently with the visible
+            # table cells than pdfplumber's reconstructed word grouping.
+            fitz_words = extract_fitz_words(fitz_doc[idx])
+            if len(fitz_words) >= 15:
+                words = fitz_words
+                source = "fitz"
+            else:
+                words = page.extract_words(
+                    x_tolerance=1.5,
+                    y_tolerance=2,
+                    keep_blank_chars=False,
+                    use_text_flow=False,
+                )
+                source = "pdfplumber"
+                if len(words) < 15:
+                    words = ocr_page_to_words(fitz_doc[idx], zoom=3.0)
                     source = "ocr"
 
             if not words:
@@ -545,11 +592,37 @@ def parse_pdf(pdf_path, week_col):
                 if not prod:
                     continue
 
-                # Product rows in the DOE spreadsheet PDF are tightly spaced
-                # (about 4 points apart). A +/-4pt band mixes adjacent products.
-                # Match only words centered on this product row instead.
-                row_center = (y_top + y_bot) / 2
-                row_center_tolerance = 1.35
+                # Use the product-label center as the row anchor. Numeric cells
+                # can have slightly different text-box heights/vertical offsets
+                # from the product label, especially in these table PDFs.
+                label_words = [
+                    w for w in line
+                    if city_max <= (w["x0"] + w["x1"]) / 2 <= prod_max
+                ]
+                row_center = statistics.median(
+                    (w["top"] + w["bottom"]) / 2 for w in label_words
+                ) if label_words else (y_top + y_bot) / 2
+
+                # Estimate row spacing from neighboring product labels on this
+                # page. Keep the band well inside half a row to avoid borrowing
+                # prices from the product immediately above/below.
+                product_centers = []
+                for candidate_line in lines:
+                    cy_top = min(w["top"] for w in candidate_line)
+                    if cy_top <= header_bottom + 1:
+                        continue
+                    if match_product_from_words(candidate_line, city_max, prod_max):
+                        product_centers.append(statistics.median(
+                            (w["top"] + w["bottom"]) / 2
+                            for w in candidate_line
+                            if city_max <= (w["x0"] + w["x1"]) / 2 <= prod_max
+                        ))
+                neighbor_distances = [
+                    abs(other - row_center) for other in product_centers
+                    if abs(other - row_center) > 0.5
+                ]
+                nearest_spacing = min(neighbor_distances) if neighbor_distances else 12.0
+                row_center_tolerance = min(5.5, max(2.5, nearest_spacing * 0.32))
                 band_words = [
                     w for w in body_words
                     if abs(((w["top"] + w["bottom"]) / 2) - row_center)
@@ -597,7 +670,7 @@ def parse_pdf(pdf_path, week_col):
                     if y_start <= w["top"] <= y_end
                     and prov_max <= (w["x0"] + w["x1"]) / 2 < city_max
                 ]
-                city_name = join_place(c_words, is_province=False)
+                city_name = resolve_city_name(c_words, MASTER_TEMPLATE)
 
                 if len(unique_page_provs) == 1:
                     prov_name = unique_page_provs[0]
