@@ -49,122 +49,149 @@ def normalize_key(value):
 
 def week_sort_key(col_name):
     """
-    Return the monitoring period's ending date.
+    Sort weekly columns by monitoring period END date.
 
-    Supported examples:
-        October 27 to November 2, 2026
-        September 29 to Oct 5, 2026
-        November 10-16, 2026
-        2026 November 10-16
-        10-16 November 2026
-        DOE filename containing 102726
+    Supports:
+    - petro_vis_2025-mar-18-24
+    - petro_vis_2025-feb-25-mar-3
+    - petro_vis_2024-dec-31-jan-6
+    - December 31, 2024 to January 6, 2025
+    - October 27 to November 2, 2026
+    - November 10-16, 2026
+    - DOE numeric filenames such as 102726
 
-    Numeric DOE filenames contain the starting date only.
-    For those, the starting date is used as a fallback because
-    it preserves chronological ordering between weekly reports.
+    Returns a date for chronological sorting.
     """
 
     text = str(col_name).upper()
 
-    year_match = re.search(r"\b(20\d{2})\b", text)
-    year = int(year_match.group(1)) if year_match else DEFAULT_YEAR
+    # -----------------------------------------------------
+    # 1. New DOE filename format:
+    #    YYYY-MON-DD-DD
+    #    YYYY-MON-DD-MON-DD
+    # -----------------------------------------------------
 
-    # ---------------------------------------------------------
-    # 1. Month-name formats
-    # ---------------------------------------------------------
+    filename_pattern = (
+        r"(?<!\d)(20\d{2})[-_ ]"
+        r"([A-Z]{3,9})[-_ ](\d{1,2})"
+        r"(?:[-_ ]([A-Z]{3,9})[-_ ](\d{1,2})"
+        r"|[-_ ](\d{1,2}))"
+    )
 
-    month_matches = list(re.finditer(MONTH_PATTERN, text))
+    match = re.search(filename_pattern, text)
 
-    if month_matches:
-        # Use the final month mentioned.
-        # This handles ranges crossing months:
-        # October 27 to November 2 -> November 2.
-        last_month = month_matches[-1]
-        month = MONTH_MAP[last_month.group()]
+    if match:
+        start_year = int(match.group(1))
+        start_month = MONTH_MAP.get(match.group(2))
+        end_month_name = match.group(4)
+        end_day_same_month = match.group(6)
 
-        remaining = text[last_month.end():]
+        if end_month_name:
+            end_month = MONTH_MAP.get(end_month_name)
+            end_day = int(match.group(5))
+        else:
+            end_month = start_month
+            end_day = int(end_day_same_month)
 
-        # Format: November 10-16
-        # Format: October 27 to November 2
+        if start_month and end_month:
+            end_year = start_year
+
+            # Handle year-crossing weeks:
+            # December 31 to January 6.
+            if end_month < start_month:
+                end_year += 1
+
+            try:
+                return date(end_year, end_month, end_day)
+            except ValueError:
+                pass
+
+    # -----------------------------------------------------
+    # 2. Month-name date formats:
+    #    October 27 to November 2, 2026
+    #    November 10-16, 2026
+    #    December 31, 2024 to January 6, 2025
+    # -----------------------------------------------------
+
+    month_pattern = (
+        r"JAN(?:UARY)?|FEB(?:RUARY)?|MAR(?:CH)?|APR(?:IL)?|"
+        r"MAY|JUN(?:E)?|JUL(?:Y)?|AUG(?:UST)?|"
+        r"SEP(?:TEMBER)?|OCT(?:OBER)?|NOV(?:EMBER)?|DEC(?:EMBER)?"
+    )
+
+    month_day_pattern = (
+        rf"({month_pattern})\s+(\d{{1,2}})"
+        rf"(?:,?\s*(20\d{{2}}))?"
+    )
+
+    matches = list(re.finditer(month_day_pattern, text))
+
+    if matches:
+        last = matches[-1]
+
+        month = MONTH_MAP[last.group(1)]
+        day = int(last.group(2))
+
+        # Prefer the year explicitly attached to the ending date.
+        if last.group(3):
+            year = int(last.group(3))
+        else:
+            years = re.findall(r"\b(20\d{2})\b", text)
+            year = int(years[-1]) if years else DEFAULT_YEAR
+
+            # If the week crosses December into January.
+            if len(matches) >= 2:
+                first_month = MONTH_MAP[matches[0].group(1)]
+
+                if month < first_month:
+                    year += 1
+
+        try:
+            return date(year, month, day)
+        except ValueError:
+            pass
+
+        # Handle single-month ranges such as November 10-16.
+        remaining = text[last.end():]
+
         day_match = re.match(
-            r"\s*(\d{1,2})(?:\s*(?:-|TO|–|—)\s*(\d{1,2}))?",
+            r"\s*(?:-|TO|–|—)\s*(\d{1,2})",
             remaining
         )
 
         if day_match:
-            day = int(day_match.group(2) or day_match.group(1))
-
             try:
-                return date(year, month, day)
+                return date(year, month, int(day_match.group(1)))
             except ValueError:
                 pass
 
-        # Format: 10-16 NOVEMBER 2026
-        prefix = text[:last_month.start()]
-        prefix_match = re.search(
-            r"(\d{1,2})\s*(?:-|TO|–|—)\s*(\d{1,2})\s*$",
-            prefix
-        )
+    # -----------------------------------------------------
+    # 3. Numeric DOE filename format: MMDDYY
+    #    Example: 102726 = October 27, 2026
+    # -----------------------------------------------------
 
-        if prefix_match:
-            day = int(prefix_match.group(2))
-
-            try:
-                return date(year, month, day)
-            except ValueError:
-                pass
-
-    # ---------------------------------------------------------
-    # 2. Numeric DOE filename format: MMDDYY
-    # ---------------------------------------------------------
-
-    numeric_match = re.search(r"(?<!\d)(\d{6})(?!\d)", text)
+    numeric_match = re.search(
+        r"(?<!\d)(\d{6})(?!\d)",
+        text
+    )
 
     if numeric_match:
         raw = numeric_match.group(1)
 
         month = int(raw[:2])
         day = int(raw[2:4])
-        numeric_year = 2000 + int(raw[4:])
+        year = 2000 + int(raw[4:])
 
         try:
-            return date(numeric_year, month, day)
+            return date(year, month, day)
         except ValueError:
             pass
 
-    # ---------------------------------------------------------
-    # 3. Unrecognized dates go last when sorting descending.
-    # ---------------------------------------------------------
+    # -----------------------------------------------------
+    # 4. Unrecognized dates go last in descending order.
+    # -----------------------------------------------------
 
     return date.min
-
-
-def load_master_template():
-    if not MASTER_ORDER_CSV.exists():
-        raise FileNotFoundError(
-            f"Missing {MASTER_ORDER_CSV}; keep it beside this script."
-        )
-
-    template = pd.read_csv(MASTER_ORDER_CSV, dtype=str).fillna("")
-
-    missing = [c for c in KEY_COLS if c not in template.columns]
-
-    if missing:
-        raise ValueError(
-            f"{MASTER_ORDER_CSV} is missing columns: {missing}"
-        )
-
-    template = template[KEY_COLS].apply(
-        lambda s: s.astype(str).str.strip()
-    )
-
-    if template.duplicated(KEY_COLS).any():
-        raise ValueError(
-            "master_order.csv contains duplicate "
-            "Region/Province/City/Product keys"
-        )
-
-    return template.reset_index(drop=True)
 
 
 def load_week_csv(csv_path):
