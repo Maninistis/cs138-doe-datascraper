@@ -194,6 +194,39 @@ def week_sort_key(col_name):
     return date.min
 
 
+def load_master_template():
+    if not MASTER_ORDER_CSV.exists():
+        raise FileNotFoundError(
+            f"Missing {MASTER_ORDER_CSV}; keep it beside this script."
+        )
+
+    template = pd.read_csv(
+        MASTER_ORDER_CSV,
+        dtype=str
+    ).fillna("")
+
+    missing = [
+        c for c in KEY_COLS
+        if c not in template.columns
+    ]
+
+    if missing:
+        raise ValueError(
+            f"{MASTER_ORDER_CSV} is missing columns: {missing}"
+        )
+
+    template = template[KEY_COLS].apply(
+        lambda s: s.astype(str).str.strip()
+    )
+
+    if template.duplicated(KEY_COLS).any():
+        raise ValueError(
+            "master_order.csv contains duplicate "
+            "Region/Province/City/Product keys"
+        )
+
+    return template.reset_index(drop=True)
+
 def load_week_csv(csv_path):
     df = pd.read_csv(csv_path, dtype=str).fillna("")
 
