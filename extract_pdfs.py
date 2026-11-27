@@ -265,7 +265,7 @@ def find_column_bounds(words, fallback_bounds=None):
 
     if prov_word:
         hy = prov_word["top"]
-        header_band = [w for w in words if abs(w["top"] - hy) <= 25]
+        header_band = [w for w in words if abs(w["top"] - hy) <= 45]
         city_words = [
             w for w in header_band
             if "CITY" in w["text"].upper() or "MUNICIPAL" in w["text"].upper()
@@ -558,7 +558,12 @@ def parse_pdf(pdf_path, week_col):
                 print(f"  p{idx + 1} [{source}]: 0 words")
                 continue
 
-            words = deskew_words(words)
+            # Native PDF text coordinates are already in the document's page
+            # coordinate system. Applying OCR-style deskew to them can introduce
+            # a false vertical offset across the wide table, separating prices
+            # from their product labels. Deskew only raster/OCR-derived words.
+            if source == "ocr":
+                words = deskew_words(words)
 
             y_tol = 5.0 if source == "ocr" else 3.5
             lines = group_words_into_lines(words, y_tol=y_tol)
@@ -580,11 +585,15 @@ def parse_pdf(pdf_path, week_col):
             header_bottom = bounds["header_bottom"]
 
             body_words = [w for w in words if w["top"] > header_bottom + 1]
-            product_rows = []
 
+            # First detect every product label on the page. Do not extract prices
+            # yet: the price text boxes can sit a little above/below the label's
+            # baseline, so a fixed +/- tolerance can accidentally take a value
+            # from the adjacent product row.
+            detected_rows = []
             for line in lines:
                 y_top = min(w["top"] for w in line)
-                y_bot = max(w["bottom"] for w in line)
+                y_bottom = max(w["bottom"] for w in line)
                 if y_top <= header_bottom + 1:
                     continue
 
@@ -592,50 +601,67 @@ def parse_pdf(pdf_path, week_col):
                 if not prod:
                     continue
 
-                # Use the product-label center as the row anchor. Numeric cells
-                # can have slightly different text-box heights/vertical offsets
-                # from the product label, especially in these table PDFs.
+                # Anchor only on the product-name tokens. The first price
+                # column begins close to the end of the PRODUCT column, so
+                # including every word in that column can pull the median
+                # toward the price text and shift the row anchor downward.
+                label_token = re.compile(
+                    r"^(?:R[O0]N|100|97|95|96|91|DIESEL|PLUS|KEROSENE)$",
+                    re.IGNORECASE,
+                )
                 label_words = [
                     w for w in line
-                    if city_max <= (w["x0"] + w["x1"]) / 2 <= prod_max
+                    if label_token.fullmatch(w["text"].strip())
+                    and city_max <= (w["x0"] + w["x1"]) / 2 <= prod_max
                 ]
+                if not label_words:
+                    continue
+
                 row_center = statistics.median(
                     (w["top"] + w["bottom"]) / 2 for w in label_words
-                ) if label_words else (y_top + y_bot) / 2
+                )
+                detected_rows.append({
+                    "top": y_top,
+                    "bottom": y_bottom,
+                    "center": row_center,
+                    "product": prod,
+                    "line": line,
+                })
 
-                # Estimate row spacing from neighboring product labels on this
-                # page. Keep the band well inside half a row to avoid borrowing
-                # prices from the product immediately above/below.
-                product_centers = []
-                for candidate_line in lines:
-                    cy_top = min(w["top"] for w in candidate_line)
-                    if cy_top <= header_bottom + 1:
-                        continue
-                    if match_product_from_words(candidate_line, city_max, prod_max):
-                        product_centers.append(statistics.median(
-                            (w["top"] + w["bottom"]) / 2
-                            for w in candidate_line
-                            if city_max <= (w["x0"] + w["x1"]) / 2 <= prod_max
-                        ))
-                neighbor_distances = [
-                    abs(other - row_center) for other in product_centers
-                    if abs(other - row_center) > 0.5
-                ]
-                nearest_spacing = min(neighbor_distances) if neighbor_distances else 12.0
-                row_center_tolerance = min(5.5, max(2.5, nearest_spacing * 0.32))
-                band_words = [
+            # Use the midpoint between adjacent product-label centers as the
+            # boundary between rows. Each price token can belong to exactly one
+            # row, even if its text box is vertically offset from the label.
+            detected_rows.sort(key=lambda row: row["center"])
+            product_centers = [row["center"] for row in detected_rows]
+            product_rows = []
+
+            for i, row in enumerate(detected_rows):
+                if i > 0:
+                    upper_boundary = (product_centers[i - 1] + row["center"]) / 2
+                else:
+                    # Extrapolate the first boundary using the next row spacing.
+                    spacing = (product_centers[i + 1] - row["center"]) if len(product_centers) > 1 else 12.0
+                    upper_boundary = row["center"] - spacing / 2
+
+                if i + 1 < len(detected_rows):
+                    lower_boundary = (row["center"] + product_centers[i + 1]) / 2
+                else:
+                    # Extrapolate the last boundary using the previous spacing.
+                    spacing = (row["center"] - product_centers[i - 1]) if i > 0 else 12.0
+                    lower_boundary = row["center"] + spacing / 2
+
+                row_words = [
                     w for w in body_words
-                    if abs(((w["top"] + w["bottom"]) / 2) - row_center)
-                    <= row_center_tolerance
+                    if upper_boundary <= ((w["top"] + w["bottom"]) / 2) < lower_boundary
                 ]
                 price = extract_common_price_from_band(
-                    band_words, line, overall_min_x, common_min_x
+                    row_words, row["line"], overall_min_x, common_min_x
                 )
 
                 product_rows.append({
-                    "top": y_top,
-                    "bottom": y_bot,
-                    "product": prod,
+                    "top": row["top"],
+                    "bottom": row["bottom"],
+                    "product": row["product"],
                     "price": price,
                 })
 

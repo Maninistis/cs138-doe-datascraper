@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pandas as pd
 
+
 EXTRACTED_DIR = Path("extracted")
 MASTER_ORDER_CSV = Path("master_order.csv")
 OUTPUT_CSV = Path("doe_visayas_prices.csv")
@@ -51,76 +52,116 @@ def week_sort_key(col_name):
     """
     Sort weekly columns by monitoring period END date.
 
-    Supports:
-    - petro_vis_2025-mar-18-24
-    - petro_vis_2025-feb-25-mar-3
-    - petro_vis_2024-dec-31-jan-6
-    - December 31, 2024 to January 6, 2025
-    - October 27 to November 2, 2026
-    - November 10-16, 2026
-    - DOE numeric filenames such as 102726
+    Supports older DOE filenames:
+        petro_vis_2024-mar-26-apr-1
+        petro_vis_2024-jan-02-1
+        petro_vis_2023-jun-13-19-pdf
+        petro_vis_2023-feb-28-mar-06
+        petro_vis_2022-dec-27
+        petro_vis_2023-aug-08_0-pdf
 
-    Returns a date for chronological sorting.
+    Also supports:
+        October 27 to November 2, 2026
+        November 10-16, 2026
+        December 31, 2024 to January 6, 2025
+        DOE numeric filenames such as 102726
+
+    Returns a datetime.date for sorting.
     """
 
     text = str(col_name).upper()
 
     # -----------------------------------------------------
-    # 1. New DOE filename format:
-    #    YYYY-MON-DD-DD
-    #    YYYY-MON-DD-MON-DD
+    # 1. Older DOE filename format:
+    #    YYYY-MON-STARTDAY-ENDDAY
+    #    YYYY-MON-STARTDAY-ENDMON-ENDDAY
+    #
+    # Examples:
+    #    petro_vis_2023-jun-13-19-pdf
+    #    petro_vis_2024-mar-26-apr-1
+    #    petro_vis_2023-feb-28-mar-06
     # -----------------------------------------------------
 
     filename_pattern = (
-        r"(?<!\d)(20\d{2})[-_ ]"
-        r"([A-Z]{3,9})[-_ ](\d{1,2})"
-        r"(?:[-_ ]([A-Z]{3,9})[-_ ](\d{1,2})"
-        r"|[-_ ](\d{1,2}))"
+        rf"(?<!\d)(20\d{{2}})[-_ ]"
+        rf"({MONTH_PATTERN})[-_ ]"
+        rf"(\d{{1,2}})"
+        rf"(?:[-_ ]"
+        rf"({MONTH_PATTERN})[-_ ]"
+        rf"(\d{{1,2}})"
+        rf"|[-_ ](\d{{1,2}}))"
     )
 
     match = re.search(filename_pattern, text)
 
     if match:
         start_year = int(match.group(1))
-        start_month = MONTH_MAP.get(match.group(2))
+        start_month = MONTH_MAP[match.group(2)]
+        start_day = int(match.group(3))
+
         end_month_name = match.group(4)
+        end_day_cross_month = match.group(5)
         end_day_same_month = match.group(6)
 
         if end_month_name:
-            end_month = MONTH_MAP.get(end_month_name)
-            end_day = int(match.group(5))
+            end_month = MONTH_MAP[end_month_name]
+            end_day = int(end_day_cross_month)
         else:
             end_month = start_month
             end_day = int(end_day_same_month)
 
-        if start_month and end_month:
-            end_year = start_year
+        end_year = start_year
 
-            # Handle year-crossing weeks:
-            # December 31 to January 6.
-            if end_month < start_month:
-                end_year += 1
+        # Handle December-to-January transitions.
+        if end_month < start_month:
+            end_year += 1
 
-            try:
-                return date(end_year, end_month, end_day)
-            except ValueError:
-                pass
+        try:
+            return date(end_year, end_month, end_day)
+        except ValueError:
+            pass
 
     # -----------------------------------------------------
-    # 2. Month-name date formats:
+    # 2. Older DOE filenames containing only one date:
+    #    YYYY-MON-DD
+    #
+    # Examples:
+    #    petro_vis_2022-dec-27
+    #    petro_vis_2023-dec-05-pdf
+    #    petro_vis_2024-jan-02
+    #
+    # Use the available date as the sorting date.
+    # -----------------------------------------------------
+
+    single_date_pattern = (
+        rf"(?<!\d)(20\d{{2}})[-_ ]"
+        rf"({MONTH_PATTERN})[-_ ]"
+        rf"(\d{{1,2}})(?!\d)"
+    )
+
+    match = re.search(single_date_pattern, text)
+
+    if match:
+        year = int(match.group(1))
+        month = MONTH_MAP[match.group(2)]
+        day = int(match.group(3))
+
+        try:
+            return date(year, month, day)
+        except ValueError:
+            pass
+
+    # -----------------------------------------------------
+    # 3. Natural-language date formats.
+    #
+    # Examples:
     #    October 27 to November 2, 2026
     #    November 10-16, 2026
     #    December 31, 2024 to January 6, 2025
     # -----------------------------------------------------
 
-    month_pattern = (
-        r"JAN(?:UARY)?|FEB(?:RUARY)?|MAR(?:CH)?|APR(?:IL)?|"
-        r"MAY|JUN(?:E)?|JUL(?:Y)?|AUG(?:UST)?|"
-        r"SEP(?:TEMBER)?|OCT(?:OBER)?|NOV(?:EMBER)?|DEC(?:EMBER)?"
-    )
-
     month_day_pattern = (
-        rf"({month_pattern})\s+(\d{{1,2}})"
+        rf"({MONTH_PATTERN})\s+(\d{{1,2}})"
         rf"(?:,?\s*(20\d{{2}}))?"
     )
 
@@ -132,26 +173,29 @@ def week_sort_key(col_name):
         month = MONTH_MAP[last.group(1)]
         day = int(last.group(2))
 
-        # Prefer the year explicitly attached to the ending date.
+        years = re.findall(r"\b(20\d{2})\b", text)
+
         if last.group(3):
             year = int(last.group(3))
+        elif years:
+            year = int(years[-1])
         else:
-            years = re.findall(r"\b(20\d{2})\b", text)
-            year = int(years[-1]) if years else DEFAULT_YEAR
+            year = DEFAULT_YEAR
 
-            # If the week crosses December into January.
-            if len(matches) >= 2:
-                first_month = MONTH_MAP[matches[0].group(1)]
+        # Handle a year-crossing range if the ending
+        # month is earlier than the starting month.
+        if len(matches) >= 2:
+            first_month = MONTH_MAP[matches[0].group(1)]
 
-                if month < first_month:
-                    year += 1
+            if month < first_month and not last.group(3):
+                year += 1
 
         try:
             return date(year, month, day)
         except ValueError:
             pass
 
-        # Handle single-month ranges such as November 10-16.
+        # Handle ranges such as November 10-16.
         remaining = text[last.end():]
 
         day_match = re.match(
@@ -161,13 +205,19 @@ def week_sort_key(col_name):
 
         if day_match:
             try:
-                return date(year, month, int(day_match.group(1)))
+                return date(
+                    year,
+                    month,
+                    int(day_match.group(1))
+                )
             except ValueError:
                 pass
 
     # -----------------------------------------------------
-    # 3. Numeric DOE filename format: MMDDYY
-    #    Example: 102726 = October 27, 2026
+    # 4. Numeric DOE filename format: MMDDYY
+    #
+    # Example:
+    #    102726 = October 27, 2026
     # -----------------------------------------------------
 
     numeric_match = re.search(
@@ -188,7 +238,7 @@ def week_sort_key(col_name):
             pass
 
     # -----------------------------------------------------
-    # 4. Unrecognized dates go last in descending order.
+    # 5. Unrecognized dates go last when sorting descending.
     # -----------------------------------------------------
 
     return date.min
@@ -227,17 +277,27 @@ def load_master_template():
 
     return template.reset_index(drop=True)
 
-def load_week_csv(csv_path):
-    df = pd.read_csv(csv_path, dtype=str).fillna("")
 
-    missing = [c for c in KEY_COLS if c not in df.columns]
+def load_week_csv(csv_path):
+    df = pd.read_csv(
+        csv_path,
+        dtype=str
+    ).fillna("")
+
+    missing = [
+        c for c in KEY_COLS
+        if c not in df.columns
+    ]
 
     if missing:
         raise ValueError(
             f"{csv_path} is missing key columns: {missing}"
         )
 
-    week_cols = [c for c in df.columns if c not in KEY_COLS]
+    week_cols = [
+        c for c in df.columns
+        if c not in KEY_COLS
+    ]
 
     if not week_cols:
         print(f"Skipped {csv_path.name}: no price column")
@@ -248,16 +308,26 @@ def load_week_csv(csv_path):
     for col in KEY_COLS:
         df[col + "_key"] = df[col].map(normalize_key)
 
-    key_cols = [c + "_key" for c in KEY_COLS]
+    key_cols = [
+        c + "_key"
+        for c in KEY_COLS
+    ]
 
-    duplicates = df.duplicated(key_cols, keep=False)
+    duplicates = df.duplicated(
+        key_cols,
+        keep=False
+    )
 
     if duplicates.any():
         print(
             f"WARNING: {csv_path.name}: "
             f"{duplicates.sum()} duplicate key rows; keeping first"
         )
-        df = df.drop_duplicates(key_cols, keep="first")
+
+        df = df.drop_duplicates(
+            key_cols,
+            keep="first"
+        )
 
     return df, week_cols
 
@@ -277,7 +347,10 @@ def main():
 
     master = load_master_template()
 
-    key_cols = [c + "_key" for c in KEY_COLS]
+    key_cols = [
+        c + "_key"
+        for c in KEY_COLS
+    ]
 
     output = master.copy()
 
@@ -285,6 +358,10 @@ def main():
         output[col + "_key"] = output[col].map(normalize_key)
 
     all_week_cols = []
+
+    # -----------------------------------------------------
+    # Merge all weekly CSV files.
+    # -----------------------------------------------------
 
     for csv_path in csv_files:
         week_df, week_cols = load_week_csv(csv_path)
@@ -306,7 +383,8 @@ def main():
         )
 
         all_week_cols.extend(
-            c for c in week_cols if c not in all_week_cols
+            c for c in week_cols
+            if c not in all_week_cols
         )
 
         matched = output[week_cols].notna().any(axis=1).sum()
@@ -316,9 +394,9 @@ def main():
             f"{matched}/{len(master)} template rows matched"
         )
 
-    # ---------------------------------------------------------
-    # Sort weekly columns by ending date, newest to oldest.
-    # ---------------------------------------------------------
+    # -----------------------------------------------------
+    # Sort weekly columns newest to oldest.
+    # -----------------------------------------------------
 
     ordered_weeks = sorted(
         all_week_cols,
@@ -326,13 +404,26 @@ def main():
         reverse=True
     )
 
-    print("\nWeekly column order:")
+    print("\nWEEKLY COLUMN ORDER (NEWEST TO OLDEST)")
+    print("-" * 65)
 
     for col in ordered_weeks:
-        print(f"  {col} -> {week_sort_key(col)}")
+        sort_date = week_sort_key(col)
 
+        if sort_date == date.min:
+            print(f"UNRECOGNIZED DATE: {col}")
+        else:
+            print(f"{sort_date} | {col}")
+
+    print("-" * 65)
+
+    # -----------------------------------------------------
     # Arrange final output.
-    output = output[KEY_COLS + ordered_weeks]
+    # -----------------------------------------------------
+
+    output = output[
+        KEY_COLS + ordered_weeks
+    ]
 
     output[ordered_weeks] = (
         output[ordered_weeks]
@@ -340,16 +431,20 @@ def main():
         .replace("", "-")
     )
 
-    output.to_csv(OUTPUT_CSV, index=False)
+    output.to_csv(
+        OUTPUT_CSV,
+        index=False
+    )
 
     print(
         f"\nSaved {OUTPUT_CSV}: "
-        f"{len(output)} rows, {len(ordered_weeks)} week columns"
+        f"{len(output)} rows, "
+        f"{len(ordered_weeks)} week columns"
     )
 
-    # ---------------------------------------------------------
+    # -----------------------------------------------------
     # Generate regional CSV files.
-    # ---------------------------------------------------------
+    # -----------------------------------------------------
 
     REGIONAL_OUTPUT_DIR.mkdir(
         parents=True,
