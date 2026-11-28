@@ -1,36 +1,25 @@
+import difflib
+import os
 import re
-import statistics
+import shutil
+import subprocess
 from pathlib import Path
 import fitz
 import pandas as pd
 import pdfplumber
+from rapidocr_onnxruntime import RapidOCR
 
 INPUT_FOLDER = Path("pdfs")
-OUTPUT_DIR = Path("extracted")
-SKIP_EXISTING = False
-MASTER_ORDER_CSV = Path("master_order.csv")
+MASTER_ORDER = Path("master_order.csv")
+OUTPUT_DIRS = {
+    "auto": Path("extracted"),
+    "text": Path("extracted1"),
+    "ocr": Path("extracted2"),
+    "rapidocr": Path("extracted_ocr"),
+    "tesseract": Path("extracted_ocr_t"),
+}
+SKIP_EXISTING = True
 KEY_COLS = ["Region", "Province", "City", "Product"]
-
-REGION_ORDER = [
-    "National Capital Region (NCR)",
-    "Cordillera Administrative Region (CAR)",
-    "Ilocos Region (REGION I)",
-    "Cagayan Valley (REGION II)",
-    "Central Luzon (REGION III)",
-    "CALABARZON (REGION IV-A)",
-    "MIMAROPA (REGION IV-B)",
-    "Bicol Region (REGION V)",
-    "Western Visayas (REGION VI)",
-    "Negros Island Region (NIR)",
-    "Central Visayas (REGION VII)",
-    "Eastern Visayas (REGION VIII)",
-    "Zamboanga Peninsula (REGION IX)",
-    "Northern Mindanao (REGION X)",
-    "Davao Region (REGION XI)",
-    "SOCCSKSARGEN (REGION XII)",
-    "Caraga (REGION XIII)",
-    "Bangsamoro Autonomous Region in Muslim Mindanao (BARMM)",
-]
 
 PRODUCT_ORDER = [
     "RON 100",
@@ -43,15 +32,19 @@ PRODUCT_ORDER = [
 ]
 
 PRODUCT_RANK = {p: i for i, p in enumerate(PRODUCT_ORDER)}
+REGION_CODES = {
+    "I", "II", "III", "IV", "V", "VI", "VII", "VIII",
+    "IX", "X", "XI", "XII", "XIII", "IVA", "IVB",
+}
 
 PRODUCT_PATTERNS = [
-    ("RON 100", re.compile(r"\bR[O0]N\s*100\b")),
-    ("RON 97", re.compile(r"\bR[O0]N\s*97\b")),
-    ("RON 95", re.compile(r"\bR[O0]N\s*9[56]\b")),
-    ("RON 91", re.compile(r"\bR[O0]N\s*91\b")),
-    ("DIESEL PLUS", re.compile(r"\bDIESEL\s*PLUS\b")),
-    ("DIESEL", re.compile(r"\bDIESEL\b")),
-    ("KEROSENE", re.compile(r"\bKEROSENE\b")),
+    ("RON 100", re.compile(r"\bR[O0QD][NNMH]?\s*[1IL][O0ODD][O0ODD]\b")),
+    ("RON 97", re.compile(r"\bR[O0QD][NNMH]?\s*9[7T]\b")),
+    ("RON 95", re.compile(r"\bR[O0QD][NNMH]?\s*9[56S]\b")),
+    ("RON 91", re.compile(r"\bR[O0QD][NNMH]?\s*9[1IL]\b")),
+    ("DIESEL PLUS", re.compile(r"\bDIESE[L1I]\s*[PBF]L[UO]S\b")),
+    ("DIESEL", re.compile(r"\bDIESE[L1I]\b")),
+    ("KEROSENE", re.compile(r"\bKER[O0]SE[NM][E3]\b")),
 ]
 
 CYRILLIC_MAP = str.maketrans("АВЕКМНОРСТХавекмнорстх", "ABEKMHOPCTXabekmhopctx")
@@ -62,24 +55,28 @@ PROVINCE_FIXES = {
     "LAUNION": "LA UNION",
     "NUEVAVIZCAYA": "NUEVA VIZCAYA",
     "NUEVAECIJA": "NUEVA ECIJA",
+    "MTPROVINCE": "MOUNTAIN PROVINCE",
 }
 
 ocr_engine = None
+OCR_ENGINE = os.getenv("OCR_ENGINE", "rapidocr").strip().lower()
+TESSERACT_CMD = os.getenv(
+    "TESSERACT_CMD",
+    r"C:\Program Files\Tesseract-OCR\tesseract.exe",
+)
 
 
 def get_ocr_engine():
     global ocr_engine
     if ocr_engine is None:
-        try:
-            from rapidocr_onnxruntime import RapidOCR
-        except ImportError as exc:
-            raise RuntimeError(
-                "OCR fallback is required for this scanned page, but "
-                "rapidocr-onnxruntime is not installed. Install it with: "
-                "pip install rapidocr-onnxruntime"
-            ) from exc
         ocr_engine = RapidOCR()
     return ocr_engine
+
+
+def get_tesseract_command():
+    if os.path.isfile(TESSERACT_CMD):
+        return TESSERACT_CMD
+    return shutil.which("tesseract") or ""
 
 
 def clean_text(text):
@@ -103,58 +100,403 @@ def safe_filename(label):
     return re.sub(r'[\\/:*?"<>|]', "_", label).strip()
 
 
+def place_match_key(text):
+    return re.sub(r"[^A-Z0-9]", "", clean_text(text).upper())
+
+
+def place_match_keys(text):
+    key = place_match_key(text)
+    if not key:
+        return set()
+
+    keys = {key, re.sub(r"([A-Z])\1+", r"\1", key)}
+    # OCR commonly swaps letters and digits in place names.
+    for old, new in (
+        ("0", "O"), ("O", "0"),
+        ("1", "I"), ("I", "1"),
+        ("5", "S"), ("S", "5"),
+        ("8", "B"), ("B", "8"),
+    ):
+        keys.update(
+            candidate_key.replace(old, new)
+            for candidate_key in tuple(keys)
+            if old in candidate_key
+        )
+    for candidate_key in tuple(keys):
+        for prefix in (
+            "CITYMUNICIPALITY",
+            "MUNICIPALITYOF",
+            "MUNICIPALITY",
+            "SCIENCECITYOF",
+            "CITYOF",
+            "SCIENCECITY",
+            "CITY",
+        ):
+            if candidate_key.startswith(prefix):
+                keys.add(candidate_key[len(prefix):])
+        for suffix in ("MUNICIPALITY", "CITY"):
+            if candidate_key.endswith(suffix):
+                keys.add(candidate_key[:-len(suffix)])
+        keys.add(candidate_key.replace("MUNICIPALITY", "").replace("CITY", ""))
+    return {match_key for match_key in keys if match_key}
+
+
+def place_match_tokens(text):
+    ignored = {"CITY", "MUNICIPAL", "MUNICIPALITY", "OF", "SCIENCE"}
+    return {
+        token
+        for token in re.findall(r"[A-Z0-9]+", clean_text(text).upper())
+        if token not in ignored
+    }
+
+
+def normalized_region_code(text):
+    key = place_match_key(text)
+    match = re.search(r"REGION(IV[AB]|[IVXL1]+)", key)
+    if not match:
+        return ""
+
+    code = match.group(1).replace("L", "I").replace("1", "I")
+    return code if code in REGION_CODES else ""
+
+
+def region_match_key(text):
+    key = place_match_key(text)
+    if key == "CAR" or "CORDILLERA" in key:
+        return "CAR"
+
+    code = normalized_region_code(text)
+    return f"REGION {code}" if code else key
+
+
+def build_master_places(master_order_path):
+    if not master_order_path.exists():
+        return {}
+
+    master_df = pd.read_csv(master_order_path, dtype=str)
+    required = {"Region", "Province", "City"}
+    missing = required.difference(master_df.columns)
+    if missing:
+        raise ValueError(
+            f"{master_order_path} is missing required columns: {', '.join(sorted(missing))}"
+        )
+
+    master_df[["Region", "Province", "City"]] = master_df[
+        ["Region", "Province", "City"]
+    ].fillna("")
+    places_by_region = {}
+    for region, province, city in master_df[
+        ["Region", "Province", "City"]
+    ].itertuples(index=False, name=None):
+        region_key = region_match_key(region)
+        city = clean_text(city or "")
+        if region_key and province and city:
+            places_by_region.setdefault(region_key, set()).add(
+                (clean_text(province), city)
+            )
+    return places_by_region
+
+
+def edit_distance_at_most_two(left, right):
+    if abs(len(left) - len(right)) > 2:
+        return 3
+
+    previous = list(range(len(right) + 1))
+    for left_index, left_char in enumerate(left, start=1):
+        current = [left_index]
+        for right_index, right_char in enumerate(right, start=1):
+            current.append(min(
+                current[-1] + 1,
+                previous[right_index] + 1,
+                previous[right_index - 1] + (left_char != right_char),
+            ))
+        if min(current) > 2:
+            return 3
+        previous = current
+    return min(previous[-1], 3)
+
+
+def match_master_city(city, candidates):
+    city_keys = place_match_keys(city)
+    if not city_keys or not candidates:
+        return None
+
+    exact_matches = {
+        place
+        for place in candidates
+        if place_match_keys(place[1]).intersection(city_keys)
+        or place_match_tokens(place[1]) == place_match_tokens(city)
+    }
+    if len(exact_matches) == 1:
+        return next(iter(exact_matches))
+    if exact_matches:
+        return None
+
+    pattern_matches = {
+        place
+        for place in candidates
+        if any(
+            len(candidate_key) >= 5 and candidate_key in city_key
+            for candidate_key in place_match_keys(place[1])
+            for city_key in city_keys
+        )
+    }
+    if len(pattern_matches) == 1:
+        return next(iter(pattern_matches))
+    if pattern_matches:
+        return None
+
+    scored_matches = []
+    for candidate in candidates:
+        candidate_keys = place_match_keys(candidate[1])
+        best_score = None
+        for city_key in city_keys:
+            for candidate_key in candidate_keys:
+                distance = edit_distance_at_most_two(city_key, candidate_key)
+                similarity = difflib.SequenceMatcher(
+                    None, city_key, candidate_key
+                ).ratio()
+                if distance <= 2 and similarity >= 0.72:
+                    score = (distance, -similarity)
+                    if best_score is None or score < best_score:
+                        best_score = score
+        if best_score is not None:
+            scored_matches.append((best_score, candidate))
+
+    if not scored_matches:
+        return None
+
+    best_score = min(score for score, _ in scored_matches)
+    best_matches = {
+        candidate for score, candidate in scored_matches if score == best_score
+    }
+    return next(iter(best_matches)) if len(best_matches) == 1 else None
+
+
+def match_master_place(city, region, province, master_places):
+    candidates = master_places.get(region_match_key(region), set())
+    if not candidates:
+        return province, ""
+
+    province_key = place_match_key(province)
+    province_candidates = {
+        place for place in candidates if place_match_key(place[0]) == province_key
+    }
+    matched_place = match_master_city(city, province_candidates)
+    if matched_place is None:
+        matched_place = match_master_city(city, candidates)
+    if matched_place is not None:
+        return matched_place
+
+    if province_candidates:
+        return next(iter(province_candidates))[0], ""
+    return province, ""
+
+
+def fill_missing_city_gaps(block_places):
+    for block_index, place in enumerate(block_places):
+        if place["city"] or place["raw_city"]:
+            continue
+
+        previous = None
+        for earlier in reversed(block_places[:block_index]):
+            if earlier["city"]:
+                previous = earlier
+                break
+            if earlier["raw_city"]:
+                break
+
+        following = None
+        for later in block_places[block_index + 1:]:
+            if later["city"]:
+                following = later
+                break
+            if later["raw_city"]:
+                break
+
+        if (
+            previous
+            and following
+            and previous["city"] == following["city"]
+            and place_match_key(previous["province"])
+            == place_match_key(following["province"])
+        ):
+            place["province"] = previous["province"]
+            place["city"] = previous["city"]
+    return block_places
+
+
+def extraction_matches_master_order(csv_path, master_places):
+    if not master_places:
+        return True
+
+    extracted = pd.read_csv(csv_path, dtype=str)
+    required = {"Region", "Province", "City"}
+    if not required.issubset(extracted.columns):
+        return False
+
+    extracted[["Region", "Province", "City"]] = extracted[
+        ["Region", "Province", "City"]
+    ].fillna("")
+    if extracted.duplicated(["Region", "Province", "City", "Product"]).any():
+        return False
+    for _, group in extracted.groupby(
+        ["Region", "Province", "City"], dropna=False
+    ):
+        if (
+            len(group) != len(PRODUCT_ORDER)
+            or set(group["Product"]) != set(PRODUCT_ORDER)
+        ):
+            return False
+
+    for region, province, city in extracted[
+        ["Region", "Province", "City"]
+    ].drop_duplicates().itertuples(index=False, name=None):
+        if not city.strip():
+            return False
+        canonical_province, canonical_city = match_master_place(
+            city, region, province, master_places
+        )
+        if canonical_city != city or canonical_province != province:
+            return False
+    return True
+
+
+def has_table_data(words):
+    upper = " ".join(w["text"] for w in words).upper()
+    return any(k in upper for k in ("RON", "DIESEL", "KEROSENE"))
+
+
+def has_broken_encoding(words):
+    if not words:
+        return False
+    full_text = " ".join(w["text"] for w in words)
+    lower = full_text.lower()
+    if "(cid:" in lower or "\ufffd" in lower:
+        return True
+    upper = full_text.upper()
+    if len(words) >= 15 and not any(
+        k in upper for k in ("PROVINCE", "PRODUCT", "RON", "DIESEL", "KEROSENE")
+    ):
+        return True
+    return False
+
+
 def normalize_region(text):
     upper = clean_text(text).upper()
+    region_code = normalized_region_code(upper)
+    if region_code and f"REGION {region_code}" not in upper:
+        upper = f"{upper} REGION {region_code}"
+
     if "NATIONAL CAPITAL" in upper or "(NCR)" in upper:
         return "National Capital Region (NCR)"
-    if "CORDILLERA" in upper or "(CAR)" in upper:
+    if "CORDILLERA" in upper or "(CAR)" in upper or re.search(r"\bCAR\b", upper):
         return "Cordillera Administrative Region (CAR)"
-    if "BANGSAMORO" in upper or "BARMM" in upper or "ARMM" in upper:
-        return "Bangsamoro Autonomous Region in Muslim Mindanao (BARMM)"
+    if "ILOCOS" in upper or "LLOCOS" in upper or "LOCOS" in upper:
+        return "Ilocos Region (REGION I)"
+    if "CAGAYAN" in upper:
+        return "Cagayan Valley (REGION II)"
+    if "CENTRAL LUZON" in upper:
+        return "Central Luzon (REGION III)"
+    if "CALABARZON" in upper:
+        return "CALABARZON (REGION IV-A)"
+    if "MIMAROPA" in upper:
+        return "MIMAROPA (REGION IV-B)"
+    if "BICOL" in upper:
+        return "Bicol Region (REGION V)"
+    if "WESTERN VISAYAS" in upper:
+        return "Western Visayas (REGION VI)"
     if "NEGROS ISLAND" in upper or "(NIR)" in upper:
         return "Negros Island Region (NIR)"
-    if "CALABARZON" in upper or "IV-A" in upper or "IVA" in upper:
-        return "CALABARZON (REGION IV-A)"
-    if "MIMAROPA" in upper or "IV-B" in upper or "IVB" in upper:
-        return "MIMAROPA (REGION IV-B)"
-    if "BICOL" in upper or "REGION V)" in upper or "REGION 5" in upper:
-        return "Bicol Region (REGION V)"
-    if "WESTERN VISAYAS" in upper or "REGION VI)" in upper or "REGION 6" in upper:
-        return "Western Visayas (REGION VI)"
-    if "CENTRAL VISAYAS" in upper or "REGION VII)" in upper or "REGION 7" in upper:
+    if "CENTRAL VISAYAS" in upper:
         return "Central Visayas (REGION VII)"
-    if "EASTERN VISAYAS" in upper or "REGION VIII)" in upper or "REGION 8" in upper:
+    if "EASTERN VISAYAS" in upper:
         return "Eastern Visayas (REGION VIII)"
-    if "ZAMBOANGA" in upper or "REGION IX)" in upper or "REGION 9" in upper:
+    if "ZAMBOANGA" in upper:
         return "Zamboanga Peninsula (REGION IX)"
-    if "NORTHERN MINDANAO" in upper or "REGION X)" in upper or "REGION 10" in upper:
+    if "NORTHERN MINDANAO" in upper:
         return "Northern Mindanao (REGION X)"
-    if "DAVAO" in upper or "REGION XI)" in upper or "REGION 11" in upper:
+    if "DAVAO" in upper:
         return "Davao Region (REGION XI)"
-    if "SOCCSKSARGEN" in upper or "REGION XII)" in upper or "REGION 12" in upper:
+    if "SOCCSKSARGEN" in upper:
         return "SOCCSKSARGEN (REGION XII)"
-    if "CARAGA" in upper or "REGION XIII)" in upper or "REGION 13" in upper:
+    if "CARAGA" in upper:
         return "Caraga (REGION XIII)"
-    if "CENTRAL LUZON" in upper or "REGION III" in upper:
+    if "BANGSAMORO" in upper or "BARMM" in upper or "ARMM" in upper:
+        return "Bangsamoro Autonomous Region in Muslim Mindanao (BARMM)"
+
+    if "IVA" in upper and not (
+        "CALABARZON" in upper or re.search(r"\bIV[\s-]?A\b", upper)
+    ):
+        return ""
+    if "IV-A" in upper or "IVA" in upper:
+        return "CALABARZON (REGION IV-A)"
+    if "IV-B" in upper or "IVB" in upper:
+        return "MIMAROPA (REGION IV-B)"
+    if "REGION XIII)" in upper or "REGION 13" in upper:
+        return "Caraga (REGION XIII)"
+    if "REGION XII)" in upper or "REGION 12" in upper:
+        return "SOCCSKSARGEN (REGION XII)"
+    if "REGION XI)" in upper or "REGION 11" in upper:
+        return "Davao Region (REGION XI)"
+    if "REGION X)" in upper or "REGION 10" in upper:
+        return "Northern Mindanao (REGION X)"
+    if "REGION IX)" in upper or "REGION 9" in upper:
+        return "Zamboanga Peninsula (REGION IX)"
+    if "REGION VIII)" in upper or "REGION 8" in upper:
+        return "Eastern Visayas (REGION VIII)"
+    if "REGION VII)" in upper or "REGION 7" in upper:
+        return "Central Visayas (REGION VII)"
+    if "REGION VI)" in upper or "REGION 6" in upper:
+        return "Western Visayas (REGION VI)"
+    if "REGION V)" in upper or "REGION 5" in upper:
+        return "Bicol Region (REGION V)"
+    if "REGION III" in upper:
         return "Central Luzon (REGION III)"
-    if "CAGAYAN" in upper or "REGION II" in upper:
+    if "REGION II" in upper:
         return "Cagayan Valley (REGION II)"
-    if "ILOCOS" in upper or "LLOCOS" in upper or "LOCOS" in upper or "REGION I)" in upper:
+    if re.search(r"\bREGION I\b", upper):
         return "Ilocos Region (REGION I)"
-    if "REGION" in upper and "MONITORING" not in upper:
-        return clean_text(text)
+
     return ""
 
 
-def extract_region(lines):
+def extract_region_headers(lines):
+    headers = []
+    table_header_ys = [
+        sum((word["top"] + word["bottom"]) / 2 for word in line) / len(line)
+        for line in lines
+        if any(place_match_key(word["text"]) == "PROVINCE" for word in line)
+        and any(place_match_key(word["text"]) in {"CITY", "CITIES"} for word in line)
+    ]
     for line in lines:
-        region = normalize_region(" ".join(w["text"] for w in line))
+        text = " ".join(w["text"] for w in line)
+        upper = clean_text(text).upper()
+        has_region_code = bool(normalized_region_code(upper))
+        is_car_header = (
+            re.search(r"\bCAR\b", upper)
+            and any(
+                abs(
+                    sum((word["top"] + word["bottom"]) / 2 for word in line)
+                    / len(line)
+                    - header_y
+                ) <= 15
+                for header_y in table_header_ys
+            )
+        )
+        if not has_region_code and not is_car_header:
+            continue
+
+        region = normalize_region(text)
         if region:
-            return region
-    return ""
+            header_y = sum(
+                (word["top"] + word["bottom"]) / 2 for word in line
+            ) / len(line)
+            headers.append((header_y, region))
+    return headers
 
 
-def group_words_into_lines(words, y_tol=4.5):
+def group_words_into_lines(words, y_tol=3.0):
     if not words:
         return []
     sorted_words = sorted(words, key=lambda w: (w["top"], w["x0"]))
@@ -189,15 +531,102 @@ def extract_fitz_words(fitz_page):
     ]
 
 
-def ocr_page_to_words(fitz_page, zoom=2.0):
+def ocr_normalize_token(text):
+    text = clean_text(text).upper()
+    text = re.sub(r"[^A-Z0-9 %./+-]+", " ", text)
+    text = re.sub(r"\b([A-Z])\|([A-Z])\b", r"\1I\2", text)
+    text = re.sub(r"\bRON\b", "RON", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
+
+
+def ocr_page_to_words(fitz_page, zoom=3.0):
     pix = fitz_page.get_pixmap(matrix=fitz.Matrix(zoom, zoom))
+    png_bytes = pix.tobytes("png")
+
+    tesseract = get_tesseract_command() if OCR_ENGINE == "tesseract" else ""
+    use_tesseract = OCR_ENGINE == "tesseract"
+    if OCR_ENGINE == "tesseract" and not tesseract:
+        raise RuntimeError(
+            "Tesseract mode was selected, but tesseract.exe was not found. "
+            "Set TESSERACT_CMD to its full path or add it to PATH."
+        )
+    if use_tesseract and tesseract:
+        try:
+            result = subprocess.run(
+                [
+                    tesseract,
+                    "stdin",
+                    "stdout",
+                    "--psm",
+                    "6",
+                    "-l",
+                    "eng",
+                    "tsv",
+                ],
+                input=png_bytes,
+                capture_output=True,
+                check=False,
+                timeout=60,
+            )
+            if result.returncode != 0 and OCR_ENGINE == "tesseract":
+                error = result.stderr.decode("utf-8", errors="replace").strip()
+                raise RuntimeError(f"Tesseract OCR failed: {error}")
+            if result.returncode == 0:
+                words = []
+                for line in result.stdout.decode("utf-8", errors="replace").splitlines()[1:]:
+                    columns = line.split("\t")
+                    if len(columns) < 12:
+                        continue
+                    (
+                        level,
+                        _page,
+                        _block,
+                        _paragraph,
+                        _line,
+                        _word,
+                        left,
+                        top,
+                        width,
+                        height,
+                        confidence,
+                        text,
+                    ) = columns[:12]
+                    if level != "5" or not text.strip():
+                        continue
+                    try:
+                        confidence_value = float(confidence)
+                    except ValueError:
+                        continue
+                    if confidence_value < 30:
+                        continue
+                    cleaned = ocr_normalize_token(text)
+                    if not cleaned:
+                        continue
+                    words.append({
+                        "text": cleaned,
+                        "x0": int(left) / zoom,
+                        "x1": (int(left) + int(width)) / zoom,
+                        "top": int(top) / zoom,
+                        "bottom": (int(top) + int(height)) / zoom,
+                    })
+                if words:
+                    return words
+                if OCR_ENGINE == "tesseract":
+                    return words
+        except (OSError, subprocess.SubprocessError) as exc:
+            if OCR_ENGINE == "tesseract":
+                raise RuntimeError(f"Could not run Tesseract OCR: {exc}") from exc
+
     result, _ = get_ocr_engine()(pix.tobytes("png"))
     words = []
     if not result:
         return words
 
-    for box, text, _ in result:
-        cleaned = text.strip()
+    for box, text, confidence in result:
+        if confidence is not None and confidence < 0.30:
+            continue
+        cleaned = ocr_normalize_token(text)
         if not cleaned:
             continue
         xs = [pt[0] / zoom for pt in box]
@@ -260,51 +689,57 @@ def find_column_bounds(words, fallback_bounds=None):
     prov_word = next((w for w in words if "PROVINCE" in w["text"].upper()), None)
     header_bottom = 0
     prov_max = None
-    common_min_x = None
     overall_min_x = None
+    common_min_x = None
 
     if prov_word:
         hy = prov_word["top"]
-        header_band = [w for w in words if abs(w["top"] - hy) <= 45]
+        header_band = [w for w in words if abs(w["top"] - hy) <= 25]
         city_words = [
             w for w in header_band
-            if "CITY" in w["text"].upper() or "MUNICIPAL" in w["text"].upper()
+            if any(
+                marker in w["text"].upper()
+                for marker in ("CITY", "CITIES", "MUNICIPAL")
+            )
         ]
         prod_words = [w for w in header_band if "PRODUCT" in w["text"].upper()]
-        common_words = [
-            w for w in header_band
-            if "COMMON" in w["text"].upper()
-        ]
         overall_words = [
             w for w in header_band
-            if w["text"].upper() in {"OVERALL", "RANGE"}
+            if ("OVERALL" in w["text"].upper() or "RANGE" in w["text"].upper())
+            and w["x0"] > 450
+        ]
+        common_words = [
+            w for w in header_band
+            if any(k in w["text"].upper() for k in ("COMMON", "COMMUN", "CUMM", "PRICE"))
+            and w["x0"] > 500
         ]
 
         header_bottom = max(
-            w["bottom"] for w in [prov_word] + city_words + prod_words + common_words
+            w["bottom"]
+            for w in [prov_word] + city_words + prod_words + overall_words + common_words
         )
+        has_products_above_header = any(
+            word["top"] < header_bottom
+            and re.match(r"^(R[O0]N|DIESEL|KEROSENE)\b", word["text"].upper())
+            for word in words
+        )
+        if has_products_above_header:
+            header_bottom = (
+                fallback_bounds.get("header_bottom", 0)
+                if fallback_bounds
+                else 0
+            )
         if city_words:
             prov_max = (prov_word["x1"] + min(w["x0"] for w in city_words)) / 2
-        if common_words:
-            # Start of the COMMON column, slightly left of its header text.
-            # Estimate the actual cell boundary from the gap between the
-            # OVERALL RANGE and COMMON PRICE header labels.
-            common_header_left = min(w["x0"] for w in common_words)
-            overall_header_right = max(
-                (w["x1"] for w in header_band
-                 if w["text"].upper() in {"OVERALL", "RANGE"}),
-                default=common_header_left - 20,
-            )
-            common_min_x = (overall_header_right + common_header_left) / 2
-        if overall_words:
-            # The OVERALL RANGE column is immediately to the left of COMMON.
-            overall_header_left = min(w["x0"] for w in overall_words)
-            independent_right = max(
-                (w["x1"] for w in header_band
-                 if "INDEPENDENT" in w["text"].upper()),
-                default=overall_header_left - 20,
-            )
-            overall_min_x = (independent_right + overall_header_left) / 2
+        if overall_words and common_words:
+            common_min_x = (
+                max(w["x1"] for w in overall_words) + min(w["x0"] for w in common_words)
+            ) / 2
+            overall_min_x = min(w["x0"] for w in overall_words) - 10
+        elif common_words:
+            common_min_x = min(w["x0"] for w in common_words) - 4
+        elif overall_words:
+            overall_min_x = min(w["x0"] for w in overall_words) - 10
 
     body_prod_x0 = [
         w["x0"] for w in words
@@ -320,7 +755,11 @@ def find_column_bounds(words, fallback_bounds=None):
             max_x = max(w["x1"] for w in words)
             common_min_x = fallback_bounds["common_min_x"] if fallback_bounds else max_x - 75
         if overall_min_x is None:
-            overall_min_x = fallback_bounds["overall_min_x"] if fallback_bounds else common_min_x - 85
+            overall_min_x = (
+                fallback_bounds["overall_min_x"]
+                if fallback_bounds and "overall_min_x" in fallback_bounds
+                else common_min_x - 95
+            )
         return {
             "prov_max": prov_max,
             "city_max": prod_x0 - 4,
@@ -339,56 +778,66 @@ def match_product_from_words(band_words, city_max, prod_max):
         if city_max <= (w["x0"] + w["x1"]) / 2 <= prod_max
     ]
     text = " ".join(pw).upper()
+    text = re.sub(r"[^A-Z0-9]+", " ", text)
+    text = text.replace("0N", "ON").replace("R0N", "RON")
+    text = text.replace("DIESELPLUS", "DIESEL PLUS")
+    text = re.sub(r"\bR\s*[O0QD]\s*[NMH]\b", "RON", text)
+    text = re.sub(r"\bD1ES(E)?L\b", "DIESEL", text)
     for name, pattern in PRODUCT_PATTERNS:
         if pattern.search(text):
             return name
     return None
 
 
-def parse_price_token(token):
+def extract_prices_from_token(token):
     t = token.strip()
-    if not t or "#" in t or "N/A" in t.upper():
-        return None
-    matches = re.findall(r"\d+\.\d{2}", t)
-    if matches:
-        return float(matches[-1])
-    match = re.search(r"\d+\.\d+", t)
-    return float(match.group()) if match else None
+    upper = t.upper()
+    if not t or "#" in t or "N/A" in upper or "NIA" in upper or "NONE" in upper:
+        return []
+    upper = upper.replace(",", ".").replace(";", ".")
+    upper = re.sub(r"(?<=\d)[,\s]+(?=\d{2}\b)", ".", upper)
+    upper = upper.replace("O", "0").replace("o", "0")
+    upper = upper.replace("S", "5").replace("s", "5")
+    matches = re.findall(r"\d+\.\d{2}", upper)
+    if not matches:
+        matches = re.findall(r"\d+\.\d+", upper)
+    if not matches:
+        for compact in re.findall(r"\b\d{4,5}\b", upper):
+            if len(compact) >= 4:
+                value = f"{compact[:-2]}.{compact[-2:]}"
+                if float(value) > 0:
+                    matches.append(value)
+    return [float(m) for m in matches if float(m) > 0]
 
 
-def extract_common_price_from_band(band_words, line, overall_min_x, common_min_x):
-    """Choose COMMON first; otherwise use the midpoint of OVERALL RANGE.
+def extract_common_price_from_band(band_words, overall_min_x, common_min_x):
+    sorted_band = sorted(band_words, key=lambda x: x["x0"])
 
-    A blank/dash cell is missing data. Never fall back to unrelated numbers
-    elsewhere on the product row (e.g. brand or independent-station columns).
-    """
-    ordered = sorted(band_words, key=lambda x: x["x0"])
+    common_words = [
+        w for w in sorted_band
+        if (w["x0"] + w["x1"]) / 2 >= common_min_x
+    ]
+    common_prices = []
+    for w in common_words:
+        common_prices.extend(extract_prices_from_token(w["text"]))
 
-    # 1) COMMON overrides all other values when it contains a valid price.
-    common_values = []
-    for w in ordered:
-        center = (w["x0"] + w["x1"]) / 2
-        if center >= common_min_x:
-            value = parse_price_token(w["text"])
-            if value is not None:
-                common_values.append(value)
-    if common_values:
-        return common_values[-1]
+    if common_prices:
+        return common_prices[-1]
 
-    # 2) Otherwise, derive a value only from the OVERALL RANGE column.
-    range_values = []
-    for w in ordered:
-        center = (w["x0"] + w["x1"]) / 2
-        if overall_min_x <= center < common_min_x:
-            # A range may be split across separate text boxes, e.g. 82.15 - 89.60.
-            found = re.findall(r"\d+(?:\.\d+)?", w["text"].replace(",", ""))
-            range_values.extend(float(v) for v in found)
+    range_words = [
+        w for w in sorted_band
+        if overall_min_x <= (w["x0"] + w["x1"]) / 2 < common_min_x
+    ]
+    range_prices = []
+    for w in range_words:
+        range_prices.extend(extract_prices_from_token(w["text"]))
 
-    if not range_values:
-        return "-"
-    if len(range_values) == 1:
-        return range_values[0]
-    return round((min(range_values) + max(range_values)) / 2, 2)
+    if len(range_prices) >= 2:
+        return round((range_prices[0] + range_prices[-1]) / 2, 2)
+    if len(range_prices) == 1:
+        return range_prices[0]
+
+    return "-"
 
 
 def join_place(words, is_province=False):
@@ -402,174 +851,256 @@ def join_place(words, is_province=False):
     s = re.sub(r"\bSAN(FERNANDO|JOSE|CARLOS|RAFAEL)\b", r"SAN \1", s)
     s = re.sub(r"\s+", " ", s).strip()
     if is_province:
-        compact = s.replace(" ", "")
+        compact = re.sub(r"[^A-Z0-9]", "", s)
         if compact in PROVINCE_FIXES:
             return PROVINCE_FIXES[compact]
     return s
 
 
-
-
-def resolve_city_name(words, master_template):
-    """Resolve a city from text inside the city column using master-order names.
-
-    Merged province cells and repeated table headers can leak into the city
-    column's vertical band. Matching against known city names prevents those
-    labels from being concatenated into invalid locations.
-    """
-    text_key = normalize_key(" ".join(w["text"] for w in words))
-    if not text_key:
-        return ""
-    cities = sorted(
-        {str(v).strip().upper() for v in master_template["City"].tolist() if str(v).strip()},
-        key=lambda value: len(normalize_key(value)),
-        reverse=True,
+def master_place_label_score(words):
+    text_key = place_match_key(" ".join(word["text"] for word in words))
+    labels = {
+        place_match_key(label)
+        for places in MASTER_PLACES.values()
+        for province, city in places
+        for label in (province, city)
+    }
+    return sum(
+        1 for label in labels
+        if len(label) >= 5 and label in text_key
     )
-    matches = [
-        city for city in cities
-        if normalize_key(city) and normalize_key(city) in text_key
+
+
+def master_city_label_score(words):
+    bounds = find_column_bounds(words)
+    if not bounds:
+        return 0
+
+    city_words = [
+        word for word in words
+        if word["bottom"] > bounds["header_bottom"]
+        and bounds["prov_max"]
+        <= (word["x0"] + word["x1"]) / 2
+        < bounds["city_max"]
     ]
-    return matches[0] if matches else join_place(words, is_province=False)
-
-
-def normalize_key(value):
-    """Normalize a location/product label for matching against the master template."""
-    return re.sub(r"[^A-Z0-9]", "", str(value or "").upper())
-
-
-def load_master_template():
-    if not MASTER_ORDER_CSV.exists():
-        raise FileNotFoundError(
-            f"Missing {MASTER_ORDER_CSV}. Keep master_order.csv beside this script."
+    text_key = place_match_key(" ".join(word["text"] for word in city_words))
+    return sum(
+        1
+        for places in MASTER_PLACES.values()
+        for _, city in places
+        if any(
+            len(label) >= 5 and label in text_key
+            for label in place_match_keys(city)
         )
-    template = pd.read_csv(MASTER_ORDER_CSV, dtype=str).fillna("")
-    required = KEY_COLS
-    missing = [c for c in required if c not in template.columns]
-    if missing:
-        raise ValueError(f"{MASTER_ORDER_CSV} is missing columns: {missing}")
-    template = template[KEY_COLS].copy()
-    for col in KEY_COLS:
-        template[col] = template[col].astype(str).str.strip().str.upper()
-    return template.drop_duplicates(KEY_COLS, keep="first").reset_index(drop=True)
+    )
 
 
-def apply_master_order(df, week_col, master_template):
-    """Canonicalize extracted city names globally, classify by province, and
-    return only master-template keys in the exact master order.
+def has_unmatched_city_blocks(words):
+    product_rows = page_product_row_count(words)
+    expected_blocks = (
+        product_rows + len(PRODUCT_ORDER) - 1
+    ) // len(PRODUCT_ORDER)
+    return expected_blocks > 0 and (
+        master_city_label_score(words) != expected_blocks
+        or product_rows % len(PRODUCT_ORDER) != 0
+    )
 
-    City is the strongest location signal in this Visayas sheet: OCR can shift
-    province labels vertically or carry a previous province into the next block.
-    Therefore, a unique city match in the master overrides the extracted province.
-    Unknown/ambiguous locations are excluded rather than guessed.
-    """
-    template = master_template.copy()
-    if df.empty:
-        return template.assign(**{week_col: "-"})[KEY_COLS + [week_col]]
 
-    def norm(value):
-        return normalize_key(value)
+def city_block_score_error(words):
+    product_rows = page_product_row_count(words)
+    expected_blocks = (
+        product_rows + len(PRODUCT_ORDER) - 1
+    ) // len(PRODUCT_ORDER)
+    if not expected_blocks:
+        return 0
+    return abs(master_city_label_score(words) - expected_blocks)
 
-    # Build city -> canonical location lookup. Only unique city names are safe
-    # to resolve without a reliable province label.
-    city_groups = {}
-    for _, row in template.drop_duplicates(["Province", "City"]).iterrows():
-        city_groups.setdefault(norm(row["City"]), []).append((row["Region"], row["Province"], row["City"]))
 
-    canonical_rows = []
-    for _, row in df.iterrows():
-        city_key = norm(row.get("City", ""))
-        province_key = norm(row.get("Province", ""))
-        candidates = city_groups.get(city_key, [])
-        chosen = None
-        if len(candidates) == 1:
-            chosen = candidates[0]
-        elif len(candidates) > 1:
-            matches = [x for x in candidates if norm(x[1]) == province_key]
-            if len(matches) == 1:
-                chosen = matches[0]
-        if chosen is None:
+def infer_region_from_city_labels(words, current_region):
+    text_key = place_match_key(" ".join(word["text"] for word in words))
+    scores = {
+        region: sum(
+            1 for city in {place_match_key(city) for _, city in places}
+            if len(city) >= 5 and city in text_key
+        )
+        for region, places in MASTER_PLACES.items()
+    }
+    best_score = max(scores.values(), default=0)
+    if best_score < 2 or best_score <= scores.get(
+        region_match_key(current_region), 0
+    ):
+        return ""
+
+    best_regions = [
+        region for region, score in scores.items()
+        if score == best_score
+    ]
+    if len(best_regions) != 1:
+        return ""
+    return MASTER_REGION_NAMES.get(best_regions[0], "")
+
+
+def page_product_row_count(words):
+    bounds = find_column_bounds(words)
+    if not bounds:
+        return 0
+
+    product_rows = 0
+    for line in group_words_into_lines(words, y_tol=3.0):
+        product_words = [
+            word for word in line
+            if bounds["city_max"]
+            <= (word["x0"] + word["x1"]) / 2
+            <= bounds["prod_max"]
+        ]
+        if not product_words:
             continue
-        region, province, city = chosen
-        canonical_rows.append({
-            "Region": region, "Province": province, "City": city,
-            "Product": str(row.get("Product", "")).strip().upper(),
-            week_col: row.get(week_col, "-"),
-        })
-
-    working = pd.DataFrame(canonical_rows, columns=KEY_COLS + [week_col])
-    if working.empty:
-        return template.assign(**{week_col: "-"})[KEY_COLS + [week_col]]
-    working = working.drop_duplicates(KEY_COLS, keep="first")
-    result = template.merge(working, on=KEY_COLS, how="left", sort=False)
-    result[week_col] = result[week_col].fillna("-").replace("", "-")
-    return result[KEY_COLS + [week_col]]
+        if min(word["bottom"] for word in product_words) <= bounds["header_bottom"]:
+            continue
+        if match_product_from_words(
+            product_words, bounds["city_max"], bounds["prod_max"]
+        ):
+            product_rows += 1
+    return product_rows
 
 
-PROVINCE_TO_REGION = {
-    "AKLAN": "Western Visayas (REGION VI)", "ANTIQUE": "Western Visayas (REGION VI)",
-    "CAPIZ": "Western Visayas (REGION VI)", "GUIMARAS": "Western Visayas (REGION VI)",
-    "ILOILO": "Western Visayas (REGION VI)", "ILOILO CITY": "Western Visayas (REGION VI)",
-    "BOHOL": "Central Visayas (REGION VII)", "CEBU": "Central Visayas (REGION VII)",
-    "BILIRAN": "Eastern Visayas (REGION VIII)", "EASTERN SAMAR": "Eastern Visayas (REGION VIII)",
-    "LEYTE": "Eastern Visayas (REGION VIII)", "NORTHERN SAMAR": "Eastern Visayas (REGION VIII)",
-    "SAMAR": "Eastern Visayas (REGION VIII)", "WESTERN SAMAR": "Eastern Visayas (REGION VIII)",
-    "SOUTHERN LEYTE": "Eastern Visayas (REGION VIII)",
-    "NEGROS OCCIDENTAL": "Negros Island Region (NIR)",
-    "NEGROS ORIENTAL": "Negros Island Region (NIR)", "SIQUIJOR": "Negros Island Region (NIR)",
-}
-
-def region_for_province(province):
-    key = clean_text(province).upper()
-    key = re.sub(r"\s+", " ", key).strip()
-    return PROVINCE_TO_REGION.get(key, "")
+def prefer_fitz_text_words(words, fitz_words):
+    return (
+        len(fitz_words) >= 15
+        and not has_broken_encoding(fitz_words)
+        and master_place_label_score(fitz_words) > master_place_label_score(words)
+        and page_product_row_count(fitz_words) >= page_product_row_count(words)
+    )
 
 
+def extract_page_words(page, fitz_page, mode):
+    if mode == "ocr":
+        return ocr_page_to_words(fitz_page), "ocr"
 
-def parse_pdf(pdf_path, week_col):
-    records = []
-    fitz_doc = fitz.open(pdf_path)
+    words = page.extract_words(
+        x_tolerance=1.5,
+        y_tolerance=2,
+        keep_blank_chars=False,
+        use_text_flow=False,
+    )
 
-    with pdfplumber.open(pdf_path) as pdf:
+    if mode == "text":
+        if len(words) < 15:
+            fitz_words = extract_fitz_words(fitz_page)
+            if len(fitz_words) >= 15:
+                return fitz_words, "fitz"
+        else:
+            fitz_words = extract_fitz_words(fitz_page)
+            if prefer_fitz_text_words(words, fitz_words):
+                return fitz_words, "fitz (master-order labels)"
+        return words, "pdfplumber"
+
+    if (
+        has_broken_encoding(words)
+        or not has_table_data(words)
+        or has_fragmented_product_labels(words)
+    ):
+        return ocr_page_to_words(fitz_page), "ocr (fallback)"
+    if len(words) < 15:
+        fitz_words = extract_fitz_words(fitz_page)
+        if len(fitz_words) >= 15 and not has_broken_encoding(fitz_words):
+            words = fitz_words
+            source = "fitz"
+        else:
+            return ocr_page_to_words(fitz_page), "ocr"
+    else:
+        fitz_words = extract_fitz_words(fitz_page)
+        if prefer_fitz_text_words(words, fitz_words):
+            words = fitz_words
+            source = "fitz (master-order labels)"
+        else:
+            source = "pdfplumber"
+
+    if has_unmatched_city_blocks(words):
+        ocr_words = ocr_page_to_words(fitz_page)
+        text_city_score = master_city_label_score(words)
+        ocr_city_score = master_city_label_score(ocr_words)
+        text_product_rows = page_product_row_count(words)
+        ocr_product_rows = page_product_row_count(ocr_words)
+        text_block_error = city_block_score_error(words)
+        ocr_block_error = city_block_score_error(ocr_words)
+        if (
+            ocr_product_rows >= text_product_rows
+            and (
+                ocr_block_error < text_block_error
+                or (
+                    ocr_block_error == text_block_error
+                    and (
+                        ocr_city_score > text_city_score
+                        or ocr_product_rows > text_product_rows
+                    )
+                )
+            )
+        ):
+            return ocr_words, "ocr (city-label fallback)"
+    return words, source
+
+
+def has_fragmented_product_labels(words):
+    bounds = find_column_bounds(words)
+    if not bounds:
+        return False
+
+    product_words = [
+        word for word in words
+        if word["top"] > bounds["header_bottom"]
+        and bounds["city_max"]
+        <= (word["x0"] + word["x1"]) / 2
+        <= bounds["prod_max"]
+    ]
+    return any(
+        sum(word["text"].isalpha() and len(word["text"]) == 1 for word in line) >= 4
+        for line in group_words_into_lines(product_words, y_tol=3.0)
+    )
+
+
+def is_province_cities_header_line(line, bounds):
+    has_province = any(
+        place_match_key(word["text"]) == "PROVINCE"
+        and (word["x0"] + word["x1"]) / 2 < bounds["prov_max"]
+        for word in line
+    )
+    has_cities = any(
+        place_match_key(word["text"]) in {"CITY", "CITIES"}
+        and bounds["prov_max"]
+        <= (word["x0"] + word["x1"]) / 2
+        < bounds["city_max"]
+        for word in line
+    )
+    return has_province and has_cities
+
+
+def parse_pdf(pdf_path, week_col, mode="auto"):
+    place_groups = []
+
+    with fitz.open(pdf_path) as fitz_doc, pdfplumber.open(pdf_path) as pdf:
         last_region = ""
         last_province = ""
         last_bounds = None
 
         for idx, page in enumerate(pdf.pages):
-            # Prefer PyMuPDF's native word boxes. For DOE PDFs with an embedded
-            # text layer, these boxes align more consistently with the visible
-            # table cells than pdfplumber's reconstructed word grouping.
-            fitz_words = extract_fitz_words(fitz_doc[idx])
-            if len(fitz_words) >= 15:
-                words = fitz_words
-                source = "fitz"
-            else:
-                words = page.extract_words(
-                    x_tolerance=1.5,
-                    y_tolerance=2,
-                    keep_blank_chars=False,
-                    use_text_flow=False,
-                )
-                source = "pdfplumber"
-                if len(words) < 15:
-                    words = ocr_page_to_words(fitz_doc[idx], zoom=3.0)
-                    source = "ocr"
+            words, source = extract_page_words(page, fitz_doc[idx], mode)
 
             if not words:
                 print(f"  p{idx + 1} [{source}]: 0 words")
                 continue
 
-            # Native PDF text coordinates are already in the document's page
-            # coordinate system. Applying OCR-style deskew to them can introduce
-            # a false vertical offset across the wide table, separating prices
-            # from their product labels. Deskew only raster/OCR-derived words.
-            if source == "ocr":
-                words = deskew_words(words)
+            words = deskew_words(words)
+            lines = group_words_into_lines(words, y_tol=3.0)
 
-            y_tol = 5.0 if source == "ocr" else 3.5
-            lines = group_words_into_lines(words, y_tol=y_tol)
-
-            # Region is assigned from the canonical province after city matching;
-            # page headers such as "REGIONS 6-8 & NIR" are not a valid region.
+            region_headers = extract_region_headers(lines)
+            previous_region = last_region
+            if region_headers:
+                region = previous_region or region_headers[0][1]
+            else:
+                region = infer_region_from_city_labels(words, previous_region) or previous_region
+                if region:
+                    last_region = region
 
             bounds = find_column_bounds(words, fallback_bounds=last_bounds)
             if not bounds:
@@ -577,91 +1108,55 @@ def parse_pdf(pdf_path, week_col):
                 continue
             last_bounds = bounds
 
+            header_word_ids = {
+                id(word)
+                for line in lines
+                if is_province_cities_header_line(line, bounds)
+                for word in line
+            }
             prov_max = bounds["prov_max"]
             city_max = bounds["city_max"]
             prod_max = bounds["prod_max"]
-            common_min_x = bounds["common_min_x"]
             overall_min_x = bounds["overall_min_x"]
+            common_min_x = bounds["common_min_x"]
             header_bottom = bounds["header_bottom"]
 
-            body_words = [w for w in words if w["top"] > header_bottom + 1]
+            body_words = [
+                word for word in words
+                if word["bottom"] > header_bottom and id(word) not in header_word_ids
+            ]
+            product_rows = []
 
-            # First detect every product label on the page. Do not extract prices
-            # yet: the price text boxes can sit a little above/below the label's
-            # baseline, so a fixed +/- tolerance can accidentally take a value
-            # from the adjacent product row.
-            detected_rows = []
             for line in lines:
-                y_top = min(w["top"] for w in line)
-                y_bottom = max(w["bottom"] for w in line)
-                if y_top <= header_bottom + 1:
+                prod_words = [
+                    w for w in line
+                    if city_max <= (w["x0"] + w["x1"]) / 2 <= prod_max
+                ]
+                if not prod_words:
                     continue
 
-                prod = match_product_from_words(line, city_max, prod_max)
+                y_top = min(w["top"] for w in prod_words)
+                y_bot = max(w["bottom"] for w in prod_words)
+                if y_bot <= header_bottom:
+                    continue
+
+                prod = match_product_from_words(prod_words, city_max, prod_max)
                 if not prod:
                     continue
 
-                # Anchor only on the product-name tokens. The first price
-                # column begins close to the end of the PRODUCT column, so
-                # including every word in that column can pull the median
-                # toward the price text and shift the row anchor downward.
-                label_token = re.compile(
-                    r"^(?:R[O0]N|100|97|95|96|91|DIESEL|PLUS|KEROSENE)$",
-                    re.IGNORECASE,
-                )
-                label_words = [
-                    w for w in line
-                    if label_token.fullmatch(w["text"].strip())
-                    and city_max <= (w["x0"] + w["x1"]) / 2 <= prod_max
-                ]
-                if not label_words:
-                    continue
-
-                row_center = statistics.median(
-                    (w["top"] + w["bottom"]) / 2 for w in label_words
-                )
-                detected_rows.append({
-                    "top": y_top,
-                    "bottom": y_bottom,
-                    "center": row_center,
-                    "product": prod,
-                    "line": line,
-                })
-
-            # Use the midpoint between adjacent product-label centers as the
-            # boundary between rows. Each price token can belong to exactly one
-            # row, even if its text box is vertically offset from the label.
-            detected_rows.sort(key=lambda row: row["center"])
-            product_centers = [row["center"] for row in detected_rows]
-            product_rows = []
-
-            for i, row in enumerate(detected_rows):
-                if i > 0:
-                    upper_boundary = (product_centers[i - 1] + row["center"]) / 2
-                else:
-                    # Extrapolate the first boundary using the next row spacing.
-                    spacing = (product_centers[i + 1] - row["center"]) if len(product_centers) > 1 else 12.0
-                    upper_boundary = row["center"] - spacing / 2
-
-                if i + 1 < len(detected_rows):
-                    lower_boundary = (row["center"] + product_centers[i + 1]) / 2
-                else:
-                    # Extrapolate the last boundary using the previous spacing.
-                    spacing = (row["center"] - product_centers[i - 1]) if i > 0 else 12.0
-                    lower_boundary = row["center"] + spacing / 2
-
-                row_words = [
+                prod_cy = (y_top + y_bot) / 2
+                band_words = [
                     w for w in body_words
-                    if upper_boundary <= ((w["top"] + w["bottom"]) / 2) < lower_boundary
+                    if abs(((w["top"] + w["bottom"]) / 2) - prod_cy) <= 3.5
                 ]
                 price = extract_common_price_from_band(
-                    row_words, row["line"], overall_min_x, common_min_x
+                    band_words, overall_min_x, common_min_x
                 )
 
                 product_rows.append({
-                    "top": row["top"],
-                    "bottom": row["bottom"],
-                    "product": row["product"],
+                    "top": y_top,
+                    "bottom": y_bot,
+                    "product": prod,
                     "price": price,
                 })
 
@@ -688,15 +1183,26 @@ def parse_pdf(pdf_path, week_col):
 
             unique_page_provs = [p for p in dict.fromkeys(raw_block_provs) if p]
 
+            block_places = []
             for block, raw_prov in zip(blocks, raw_block_provs):
+                block_region = region
+                if region_headers:
+                    block_region = previous_region or region_headers[0][1]
+                    for header_y, header_region in region_headers:
+                        if header_y > block[0]["top"]:
+                            break
+                        block_region = header_region
+
                 y_start = block[0]["top"] - 10
                 y_end = block[-1]["bottom"] + 10
+                # Product-order splits can place the city label above the block.
+                city_y_start = block[0]["top"] - 25
                 c_words = [
                     w for w in body_words
-                    if y_start <= w["top"] <= y_end
+                    if city_y_start <= w["top"] <= y_end
                     and prov_max <= (w["x0"] + w["x1"]) / 2 < city_max
                 ]
-                city_name = resolve_city_name(c_words, MASTER_TEMPLATE)
+                raw_city = join_place(c_words, is_province=False)
 
                 if len(unique_page_provs) == 1:
                     prov_name = unique_page_provs[0]
@@ -707,39 +1213,181 @@ def parse_pdf(pdf_path, week_col):
                 else:
                     prov_name = last_province
 
-                for row in block:
-                    records.append({
-                        # Filled from the canonical city/province in apply_master_order.
-                        "Region": "",
-                        "Province": prov_name,
-                        "City": city_name,
-                        "Product": row["product"],
-                        week_col: row["price"],
-                    })
+                city_labels = []
+                for city_line in group_words_into_lines(c_words, y_tol=12):
+                    label = join_place(city_line, is_province=False)
+                    label_place = match_master_place(
+                        label, block_region, prov_name, MASTER_PLACES
+                    )
+                    if label_place[1]:
+                        label_y = sum(
+                            (word["top"] + word["bottom"]) / 2
+                            for word in city_line
+                        ) / len(city_line)
+                        city_labels.append((label_y, label_place))
 
-            print(f"  p{idx + 1} [{source}]: {len(blocks)} cities, {len(product_rows)} rows")
+                distinct_labels = {place for _, place in city_labels}
+                if len(distinct_labels) > 1:
+                    rows_by_place = {place: [] for place in distinct_labels}
+                    for row in block:
+                        row_y = (row["top"] + row["bottom"]) / 2
+                        nearest_place = min(
+                            city_labels,
+                            key=lambda label: abs(label[0] - row_y),
+                        )[1]
+                        rows_by_place[nearest_place].append(row)
 
-    fitz_doc.close()
+                    for label_place in sorted(
+                        (
+                            place for place in distinct_labels
+                            if rows_by_place[place]
+                        ),
+                        key=lambda place: min(
+                            row["top"] for row in rows_by_place[place]
+                        ),
+                    ):
+                        assigned_rows = rows_by_place[label_place]
+                        block_places.append({
+                            "block": assigned_rows,
+                            "province": label_place[0],
+                            "city": label_place[1],
+                            "raw_city": raw_city,
+                            "region": block_region,
+                        })
+                    continue
+
+                prov_name, city_name = match_master_place(
+                    raw_city, block_region, prov_name, MASTER_PLACES
+                )
+                if distinct_labels:
+                    prov_name, city_name = next(iter(distinct_labels))
+                if prov_name:
+                    last_province = prov_name
+                block_places.append({
+                    "block": block,
+                    "province": prov_name,
+                    "city": city_name,
+                    "raw_city": raw_city,
+                    "region": block_region,
+                })
+
+            fill_missing_city_gaps(block_places)
+
+            for place in block_places:
+                block_prices = {
+                    row["product"]: row["price"] for row in place["block"]
+                }
+                place_groups.append({
+                    "region": place["region"],
+                    "province": place["province"],
+                    "city": place["city"],
+                    "prices": block_prices,
+                })
+
+            print(f"  p{idx + 1} [{source}]: {len(block_places)} cities, {len(product_rows)} rows")
+            if region_headers:
+                last_region = region_headers[-1][1]
+
+    groups_with_prices = {
+        (
+            region_match_key(group["region"]),
+            place_match_key(group["province"]),
+            place_match_key(group["city"]),
+        )
+        for group in place_groups
+        if group["city"]
+        and any(
+            str(group["prices"].get(product, "-")).strip() not in {"", "-"}
+            for product in PRODUCT_ORDER
+        )
+    }
+
+    records = []
+    for group in place_groups:
+        has_price = any(
+            str(group["prices"].get(product, "-")).strip() not in {"", "-"}
+            for product in PRODUCT_ORDER
+        )
+        place_key = (
+            region_match_key(group["region"]),
+            place_match_key(group["province"]),
+            place_match_key(group["city"]),
+        )
+        if not group["city"] and not has_price:
+            continue
+        if not has_price and place_key in groups_with_prices:
+            continue
+
+        for prod_name in PRODUCT_ORDER:
+            records.append({
+                "Region": group["region"],
+                "Province": group["province"],
+                "City": group["city"],
+                "Product": prod_name,
+                week_col: group["prices"].get(prod_name, "-"),
+            })
+
     df = pd.DataFrame(records, columns=KEY_COLS + [week_col])
-    df = df.drop_duplicates(subset=KEY_COLS, keep="first")
-    return apply_master_order(df, week_col, MASTER_TEMPLATE)
+    return df.reset_index(drop=True)
 
 
-MASTER_TEMPLATE = load_master_template()
+MASTER_PLACES = build_master_places(MASTER_ORDER)
+if MASTER_ORDER.exists():
+    master_regions = pd.read_csv(
+        MASTER_ORDER, usecols=["Region"], dtype=str
+    )["Region"].dropna().drop_duplicates()
+    MASTER_REGION_NAMES = {
+        region_match_key(region): clean_text(region)
+        for region in master_regions
+    }
+else:
+    MASTER_REGION_NAMES = {}
+if not MASTER_PLACES:
+    print(f"Warning: {MASTER_ORDER} is missing or has no usable cities; city matching is disabled.")
 
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-pdf_files = sorted(INPUT_FOLDER.glob("*.pdf"))
+
+mode = input(
+    "Select mode (auto / text / ocr / rapidocr / tesseract): "
+).strip().lower()
+while mode not in OUTPUT_DIRS:
+    mode = input(
+        "Invalid mode. Choose auto, text, ocr, rapidocr, or tesseract: "
+    ).strip().lower()
+
+if mode == "tesseract":
+    if not get_tesseract_command():
+        raise SystemExit(
+            "Tesseract mode selected, but tesseract.exe was not found. "
+            "Add it to PATH or set TESSERACT_CMD to its full path."
+        )
+    OCR_ENGINE = "tesseract"
+elif mode == "rapidocr":
+    OCR_ENGINE = "rapidocr"
+
+out_dir = OUTPUT_DIRS[mode]
+out_dir.mkdir(parents=True, exist_ok=True)
+all_pdf_files = sorted(INPUT_FOLDER.glob("*.pdf"))
+pdf_files = [
+    path for path in all_pdf_files
+    if not path.stem.lower().startswith("petro_ncr_")
+]
+if len(pdf_files) != len(all_pdf_files):
+    print(f"Skipping {len(all_pdf_files) - len(pdf_files)} NCR PDF(s).")
+
+print(f"\n=== MODE: {mode.upper()} -> {out_dir}/ ===")
 
 for pdf_path in pdf_files:
     week_col = extract_week_label(pdf_path)
-    out_csv = OUTPUT_DIR / f"{safe_filename(week_col)}.csv"
+    out_csv = out_dir / f"{safe_filename(week_col)}.csv"
 
     if SKIP_EXISTING and out_csv.exists():
-        print(f"Skipped (already extracted): {out_csv.name}")
-        continue
+        if extraction_matches_master_order(out_csv, MASTER_PLACES):
+            print(f"Skipped (already matches master order): {out_csv}")
+            continue
+        print(f"Re-extracting (city names do not match master order): {out_csv}")
 
-    print(f"Extracting {pdf_path.name} -> {out_csv.name}")
-    week_df = parse_pdf(pdf_path, week_col)
+    print(f"Extracting {pdf_path.name} -> {out_csv}")
+    week_df = parse_pdf(pdf_path, week_col, mode=mode)
 
     if week_df.empty:
         print(f"  No rows extracted from {pdf_path.name}")

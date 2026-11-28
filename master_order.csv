@@ -1,477 +1,694 @@
 Region,Province,City,Product
-Region VI,Aklan,Boracay,RON 100
-Region VI,Aklan,Boracay,RON 97
-Region VI,Aklan,Boracay,RON 95
-Region VI,Aklan,Boracay,RON 91
-Region VI,Aklan,Boracay,DIESEL
-Region VI,Aklan,Boracay,DIESEL PLUS
-Region VI,Aklan,Boracay,KEROSENE
-Region VI,Aklan,Buruanga,RON 100
-Region VI,Aklan,Buruanga,RON 97
-Region VI,Aklan,Buruanga,RON 95
-Region VI,Aklan,Buruanga,RON 91
-Region VI,Aklan,Buruanga,DIESEL
-Region VI,Aklan,Buruanga,DIESEL PLUS
-Region VI,Aklan,Buruanga,KEROSENE
-Region VI,Aklan,Caticlan,RON 100
-Region VI,Aklan,Caticlan,RON 97
-Region VI,Aklan,Caticlan,RON 95
-Region VI,Aklan,Caticlan,RON 91
-Region VI,Aklan,Caticlan,DIESEL
-Region VI,Aklan,Caticlan,DIESEL PLUS
-Region VI,Aklan,Caticlan,KEROSENE
-Region VI,Aklan,Kalibo,RON 100
-Region VI,Aklan,Kalibo,RON 97
-Region VI,Aklan,Kalibo,RON 95
-Region VI,Aklan,Kalibo,RON 91
-Region VI,Aklan,Kalibo,DIESEL
-Region VI,Aklan,Kalibo,DIESEL PLUS
-Region VI,Aklan,Kalibo,KEROSENE
-Region VI,Aklan,Malay,RON 100
-Region VI,Aklan,Malay,RON 97
-Region VI,Aklan,Malay,RON 95
-Region VI,Aklan,Malay,RON 91
-Region VI,Aklan,Malay,DIESEL
-Region VI,Aklan,Malay,DIESEL PLUS
-Region VI,Aklan,Malay,KEROSENE
-Region VI,Antique,San Jose,RON 100
-Region VI,Antique,San Jose,RON 97
-Region VI,Antique,San Jose,RON 95
-Region VI,Antique,San Jose,RON 91
-Region VI,Antique,San Jose,DIESEL
-Region VI,Antique,San Jose,DIESEL PLUS
-Region VI,Antique,San Jose,KEROSENE
-Region VI,Antique,Tibiao,RON 100
-Region VI,Antique,Tibiao,RON 97
-Region VI,Antique,Tibiao,RON 95
-Region VI,Antique,Tibiao,RON 91
-Region VI,Antique,Tibiao,DIESEL
-Region VI,Antique,Tibiao,DIESEL PLUS
-Region VI,Antique,Tibiao,KEROSENE
-Region VI,Capiz,Roxas City,RON 100
-Region VI,Capiz,Roxas City,RON 97
-Region VI,Capiz,Roxas City,RON 95
-Region VI,Capiz,Roxas City,RON 91
-Region VI,Capiz,Roxas City,DIESEL
-Region VI,Capiz,Roxas City,DIESEL PLUS
-Region VI,Capiz,Roxas City,KEROSENE
-Region VI,Capiz,Sigma,RON 100
-Region VI,Capiz,Sigma,RON 97
-Region VI,Capiz,Sigma,RON 95
-Region VI,Capiz,Sigma,RON 91
-Region VI,Capiz,Sigma,DIESEL
-Region VI,Capiz,Sigma,DIESEL PLUS
-Region VI,Capiz,Sigma,KEROSENE
-Region VI,Guimaras,Jordan,RON 100
-Region VI,Guimaras,Jordan,RON 97
-Region VI,Guimaras,Jordan,RON 95
-Region VI,Guimaras,Jordan,RON 91
-Region VI,Guimaras,Jordan,DIESEL
-Region VI,Guimaras,Jordan,DIESEL PLUS
-Region VI,Guimaras,Jordan,KEROSENE
-Region VI,Guimaras,Nueva Valencia,RON 100
-Region VI,Guimaras,Nueva Valencia,RON 97
-Region VI,Guimaras,Nueva Valencia,RON 95
-Region VI,Guimaras,Nueva Valencia,RON 91
-Region VI,Guimaras,Nueva Valencia,DIESEL
-Region VI,Guimaras,Nueva Valencia,DIESEL PLUS
-Region VI,Guimaras,Nueva Valencia,KEROSENE
-Region VI,Guimaras,San Lorenzo,RON 100
-Region VI,Guimaras,San Lorenzo,RON 97
-Region VI,Guimaras,San Lorenzo,RON 95
-Region VI,Guimaras,San Lorenzo,RON 91
-Region VI,Guimaras,San Lorenzo,DIESEL
-Region VI,Guimaras,San Lorenzo,DIESEL PLUS
-Region VI,Guimaras,San Lorenzo,KEROSENE
-Region VI,Iloilo,Barotac Nuevo,RON 100
-Region VI,Iloilo,Barotac Nuevo,RON 97
-Region VI,Iloilo,Barotac Nuevo,RON 95
-Region VI,Iloilo,Barotac Nuevo,RON 91
-Region VI,Iloilo,Barotac Nuevo,DIESEL
-Region VI,Iloilo,Barotac Nuevo,DIESEL PLUS
-Region VI,Iloilo,Barotac Nuevo,KEROSENE
-Region VI,Iloilo,Dingle,RON 100
-Region VI,Iloilo,Dingle,RON 97
-Region VI,Iloilo,Dingle,RON 95
-Region VI,Iloilo,Dingle,RON 91
-Region VI,Iloilo,Dingle,DIESEL
-Region VI,Iloilo,Dingle,DIESEL PLUS
-Region VI,Iloilo,Dingle,KEROSENE
-Region VI,Iloilo,Iloilo City,RON 100
-Region VI,Iloilo,Iloilo City,RON 97
-Region VI,Iloilo,Iloilo City,RON 95
-Region VI,Iloilo,Iloilo City,RON 91
-Region VI,Iloilo,Iloilo City,DIESEL
-Region VI,Iloilo,Iloilo City,DIESEL PLUS
-Region VI,Iloilo,Iloilo City,KEROSENE
-Region VI,Iloilo,Janiuay,RON 100
-Region VI,Iloilo,Janiuay,RON 97
-Region VI,Iloilo,Janiuay,RON 95
-Region VI,Iloilo,Janiuay,RON 91
-Region VI,Iloilo,Janiuay,DIESEL
-Region VI,Iloilo,Janiuay,DIESEL PLUS
-Region VI,Iloilo,Janiuay,KEROSENE
-Region VI,Iloilo,Leon,RON 100
-Region VI,Iloilo,Leon,RON 97
-Region VI,Iloilo,Leon,RON 95
-Region VI,Iloilo,Leon,RON 91
-Region VI,Iloilo,Leon,DIESEL
-Region VI,Iloilo,Leon,DIESEL PLUS
-Region VI,Iloilo,Leon,KEROSENE
-Region VI,Iloilo,New Lucena,RON 100
-Region VI,Iloilo,New Lucena,RON 97
-Region VI,Iloilo,New Lucena,RON 95
-Region VI,Iloilo,New Lucena,RON 91
-Region VI,Iloilo,New Lucena,DIESEL
-Region VI,Iloilo,New Lucena,DIESEL PLUS
-Region VI,Iloilo,New Lucena,KEROSENE
-Region VI,Iloilo,Passi City,RON 100
-Region VI,Iloilo,Passi City,RON 97
-Region VI,Iloilo,Passi City,RON 95
-Region VI,Iloilo,Passi City,RON 91
-Region VI,Iloilo,Passi City,DIESEL
-Region VI,Iloilo,Passi City,DIESEL PLUS
-Region VI,Iloilo,Passi City,KEROSENE
-Region VI,Iloilo,Tigbauan,RON 100
-Region VI,Iloilo,Tigbauan,RON 97
-Region VI,Iloilo,Tigbauan,RON 95
-Region VI,Iloilo,Tigbauan,RON 91
-Region VI,Iloilo,Tigbauan,DIESEL
-Region VI,Iloilo,Tigbauan,DIESEL PLUS
-Region VI,Iloilo,Tigbauan,KEROSENE
-Region VII,Bohol,Anda,RON 100
-Region VII,Bohol,Anda,RON 97
-Region VII,Bohol,Anda,RON 95
-Region VII,Bohol,Anda,RON 91
-Region VII,Bohol,Anda,DIESEL
-Region VII,Bohol,Anda,DIESEL PLUS
-Region VII,Bohol,Anda,KEROSENE
-Region VII,Bohol,Balilihan,RON 100
-Region VII,Bohol,Balilihan,RON 97
-Region VII,Bohol,Balilihan,RON 95
-Region VII,Bohol,Balilihan,RON 91
-Region VII,Bohol,Balilihan,DIESEL
-Region VII,Bohol,Balilihan,DIESEL PLUS
-Region VII,Bohol,Balilihan,KEROSENE
-Region VII,Bohol,Candijay,RON 100
-Region VII,Bohol,Candijay,RON 97
-Region VII,Bohol,Candijay,RON 95
-Region VII,Bohol,Candijay,RON 91
-Region VII,Bohol,Candijay,DIESEL
-Region VII,Bohol,Candijay,DIESEL PLUS
-Region VII,Bohol,Candijay,KEROSENE
-Region VII,Bohol,Jagna,RON 100
-Region VII,Bohol,Jagna,RON 97
-Region VII,Bohol,Jagna,RON 95
-Region VII,Bohol,Jagna,RON 91
-Region VII,Bohol,Jagna,DIESEL
-Region VII,Bohol,Jagna,DIESEL PLUS
-Region VII,Bohol,Jagna,KEROSENE
-Region VII,Bohol,Loboc,RON 100
-Region VII,Bohol,Loboc,RON 97
-Region VII,Bohol,Loboc,RON 95
-Region VII,Bohol,Loboc,RON 91
-Region VII,Bohol,Loboc,DIESEL
-Region VII,Bohol,Loboc,DIESEL PLUS
-Region VII,Bohol,Loboc,KEROSENE
-Region VII,Bohol,Sikatuna,RON 100
-Region VII,Bohol,Sikatuna,RON 97
-Region VII,Bohol,Sikatuna,RON 95
-Region VII,Bohol,Sikatuna,RON 91
-Region VII,Bohol,Sikatuna,DIESEL
-Region VII,Bohol,Sikatuna,DIESEL PLUS
-Region VII,Bohol,Sikatuna,KEROSENE
-Region VII,Bohol,Tagbilaran City,RON 100
-Region VII,Bohol,Tagbilaran City,RON 97
-Region VII,Bohol,Tagbilaran City,RON 95
-Region VII,Bohol,Tagbilaran City,RON 91
-Region VII,Bohol,Tagbilaran City,DIESEL
-Region VII,Bohol,Tagbilaran City,DIESEL PLUS
-Region VII,Bohol,Tagbilaran City,KEROSENE
-Region VII,Bohol,Tubigon,RON 100
-Region VII,Bohol,Tubigon,RON 97
-Region VII,Bohol,Tubigon,RON 95
-Region VII,Bohol,Tubigon,RON 91
-Region VII,Bohol,Tubigon,DIESEL
-Region VII,Bohol,Tubigon,DIESEL PLUS
-Region VII,Bohol,Tubigon,KEROSENE
-Region VII,Bohol,Ubay,RON 100
-Region VII,Bohol,Ubay,RON 97
-Region VII,Bohol,Ubay,RON 95
-Region VII,Bohol,Ubay,RON 91
-Region VII,Bohol,Ubay,DIESEL
-Region VII,Bohol,Ubay,DIESEL PLUS
-Region VII,Bohol,Ubay,KEROSENE
-Region VII,Cebu,Bantayan,RON 100
-Region VII,Cebu,Bantayan,RON 97
-Region VII,Cebu,Bantayan,RON 95
-Region VII,Cebu,Bantayan,RON 91
-Region VII,Cebu,Bantayan,DIESEL
-Region VII,Cebu,Bantayan,DIESEL PLUS
-Region VII,Cebu,Bantayan,KEROSENE
-Region VII,Cebu,Bogo City,RON 100
-Region VII,Cebu,Bogo City,RON 97
-Region VII,Cebu,Bogo City,RON 95
-Region VII,Cebu,Bogo City,RON 91
-Region VII,Cebu,Bogo City,DIESEL
-Region VII,Cebu,Bogo City,DIESEL PLUS
-Region VII,Cebu,Bogo City,KEROSENE
-Region VII,Cebu,Carcar City,RON 100
-Region VII,Cebu,Carcar City,RON 97
-Region VII,Cebu,Carcar City,RON 95
-Region VII,Cebu,Carcar City,RON 91
-Region VII,Cebu,Carcar City,DIESEL
-Region VII,Cebu,Carcar City,DIESEL PLUS
-Region VII,Cebu,Carcar City,KEROSENE
-Region VII,Cebu,Cebu City,RON 100
-Region VII,Cebu,Cebu City,RON 97
-Region VII,Cebu,Cebu City,RON 95
-Region VII,Cebu,Cebu City,RON 91
-Region VII,Cebu,Cebu City,DIESEL
-Region VII,Cebu,Cebu City,DIESEL PLUS
-Region VII,Cebu,Cebu City,KEROSENE
-Region VII,Cebu,Danao City,RON 100
-Region VII,Cebu,Danao City,RON 97
-Region VII,Cebu,Danao City,RON 95
-Region VII,Cebu,Danao City,RON 91
-Region VII,Cebu,Danao City,DIESEL
-Region VII,Cebu,Danao City,DIESEL PLUS
-Region VII,Cebu,Danao City,KEROSENE
-Region VII,Cebu,Lapu-Lapu City,RON 100
-Region VII,Cebu,Lapu-Lapu City,RON 97
-Region VII,Cebu,Lapu-Lapu City,RON 95
-Region VII,Cebu,Lapu-Lapu City,RON 91
-Region VII,Cebu,Lapu-Lapu City,DIESEL
-Region VII,Cebu,Lapu-Lapu City,DIESEL PLUS
-Region VII,Cebu,Lapu-Lapu City,KEROSENE
-Region VII,Cebu,Mandaue City,RON 100
-Region VII,Cebu,Mandaue City,RON 97
-Region VII,Cebu,Mandaue City,RON 95
-Region VII,Cebu,Mandaue City,RON 91
-Region VII,Cebu,Mandaue City,DIESEL
-Region VII,Cebu,Mandaue City,DIESEL PLUS
-Region VII,Cebu,Mandaue City,KEROSENE
-Region VII,Cebu,Madridejos,RON 100
-Region VII,Cebu,Madridejos,RON 97
-Region VII,Cebu,Madridejos,RON 95
-Region VII,Cebu,Madridejos,RON 91
-Region VII,Cebu,Madridejos,DIESEL
-Region VII,Cebu,Madridejos,DIESEL PLUS
-Region VII,Cebu,Madridejos,KEROSENE
-Region VII,Cebu,Naga City,RON 100
-Region VII,Cebu,Naga City,RON 97
-Region VII,Cebu,Naga City,RON 95
-Region VII,Cebu,Naga City,RON 91
-Region VII,Cebu,Naga City,DIESEL
-Region VII,Cebu,Naga City,DIESEL PLUS
-Region VII,Cebu,Naga City,KEROSENE
-Region VII,Cebu,San Remigio,RON 100
-Region VII,Cebu,San Remigio,RON 97
-Region VII,Cebu,San Remigio,RON 95
-Region VII,Cebu,San Remigio,RON 91
-Region VII,Cebu,San Remigio,DIESEL
-Region VII,Cebu,San Remigio,DIESEL PLUS
-Region VII,Cebu,San Remigio,KEROSENE
-Region VII,Cebu,Sta. Fe,RON 100
-Region VII,Cebu,Sta. Fe,RON 97
-Region VII,Cebu,Sta. Fe,RON 95
-Region VII,Cebu,Sta. Fe,RON 91
-Region VII,Cebu,Sta. Fe,DIESEL
-Region VII,Cebu,Sta. Fe,DIESEL PLUS
-Region VII,Cebu,Sta. Fe,KEROSENE
-Region VII,Cebu,Talisay City,RON 100
-Region VII,Cebu,Talisay City,RON 97
-Region VII,Cebu,Talisay City,RON 95
-Region VII,Cebu,Talisay City,RON 91
-Region VII,Cebu,Talisay City,DIESEL
-Region VII,Cebu,Talisay City,DIESEL PLUS
-Region VII,Cebu,Talisay City,KEROSENE
-Region VIII,Biliran,Biliran,RON 100
-Region VIII,Biliran,Biliran,RON 97
-Region VIII,Biliran,Biliran,RON 95
-Region VIII,Biliran,Biliran,RON 91
-Region VIII,Biliran,Biliran,DIESEL
-Region VIII,Biliran,Biliran,DIESEL PLUS
-Region VIII,Biliran,Biliran,KEROSENE
-Region VIII,Eastern Samar,Borongan City,RON 100
-Region VIII,Eastern Samar,Borongan City,RON 97
-Region VIII,Eastern Samar,Borongan City,RON 95
-Region VIII,Eastern Samar,Borongan City,RON 91
-Region VIII,Eastern Samar,Borongan City,DIESEL
-Region VIII,Eastern Samar,Borongan City,DIESEL PLUS
-Region VIII,Eastern Samar,Borongan City,KEROSENE
-Region VIII,Eastern Samar,Guiuan,RON 100
-Region VIII,Eastern Samar,Guiuan,RON 97
-Region VIII,Eastern Samar,Guiuan,RON 95
-Region VIII,Eastern Samar,Guiuan,RON 91
-Region VIII,Eastern Samar,Guiuan,DIESEL
-Region VIII,Eastern Samar,Guiuan,DIESEL PLUS
-Region VIII,Eastern Samar,Guiuan,KEROSENE
-Region VIII,Eastern Samar,Quinapondan,RON 100
-Region VIII,Eastern Samar,Quinapondan,RON 97
-Region VIII,Eastern Samar,Quinapondan,RON 95
-Region VIII,Eastern Samar,Quinapondan,RON 91
-Region VIII,Eastern Samar,Quinapondan,DIESEL
-Region VIII,Eastern Samar,Quinapondan,DIESEL PLUS
-Region VIII,Eastern Samar,Quinapondan,KEROSENE
-Region VIII,Leyte,Albuera,RON 100
-Region VIII,Leyte,Albuera,RON 97
-Region VIII,Leyte,Albuera,RON 95
-Region VIII,Leyte,Albuera,RON 91
-Region VIII,Leyte,Albuera,DIESEL
-Region VIII,Leyte,Albuera,DIESEL PLUS
-Region VIII,Leyte,Albuera,KEROSENE
-Region VIII,Leyte,Baybay City,RON 100
-Region VIII,Leyte,Baybay City,RON 97
-Region VIII,Leyte,Baybay City,RON 95
-Region VIII,Leyte,Baybay City,RON 91
-Region VIII,Leyte,Baybay City,DIESEL
-Region VIII,Leyte,Baybay City,DIESEL PLUS
-Region VIII,Leyte,Baybay City,KEROSENE
-Region VIII,Leyte,Carigara,RON 100
-Region VIII,Leyte,Carigara,RON 97
-Region VIII,Leyte,Carigara,RON 95
-Region VIII,Leyte,Carigara,RON 91
-Region VIII,Leyte,Carigara,DIESEL
-Region VIII,Leyte,Carigara,DIESEL PLUS
-Region VIII,Leyte,Carigara,KEROSENE
-Region VIII,Leyte,Ormoc City,RON 100
-Region VIII,Leyte,Ormoc City,RON 97
-Region VIII,Leyte,Ormoc City,RON 95
-Region VIII,Leyte,Ormoc City,RON 91
-Region VIII,Leyte,Ormoc City,DIESEL
-Region VIII,Leyte,Ormoc City,DIESEL PLUS
-Region VIII,Leyte,Ormoc City,KEROSENE
-Region VIII,Leyte,Tacloban City,RON 100
-Region VIII,Leyte,Tacloban City,RON 97
-Region VIII,Leyte,Tacloban City,RON 95
-Region VIII,Leyte,Tacloban City,RON 91
-Region VIII,Leyte,Tacloban City,DIESEL
-Region VIII,Leyte,Tacloban City,DIESEL PLUS
-Region VIII,Leyte,Tacloban City,KEROSENE
-Region VIII,Northern Samar,Catarman,RON 100
-Region VIII,Northern Samar,Catarman,RON 97
-Region VIII,Northern Samar,Catarman,RON 95
-Region VIII,Northern Samar,Catarman,RON 91
-Region VIII,Northern Samar,Catarman,DIESEL
-Region VIII,Northern Samar,Catarman,DIESEL PLUS
-Region VIII,Northern Samar,Catarman,KEROSENE
-Region VIII,Northern Samar,Las Navas,RON 100
-Region VIII,Northern Samar,Las Navas,RON 97
-Region VIII,Northern Samar,Las Navas,RON 95
-Region VIII,Northern Samar,Las Navas,RON 91
-Region VIII,Northern Samar,Las Navas,DIESEL
-Region VIII,Northern Samar,Las Navas,DIESEL PLUS
-Region VIII,Northern Samar,Las Navas,KEROSENE
-Region VIII,Samar,Calbayog City,RON 100
-Region VIII,Samar,Calbayog City,RON 97
-Region VIII,Samar,Calbayog City,RON 95
-Region VIII,Samar,Calbayog City,RON 91
-Region VIII,Samar,Calbayog City,DIESEL
-Region VIII,Samar,Calbayog City,DIESEL PLUS
-Region VIII,Samar,Calbayog City,KEROSENE
-Region VIII,Samar,Catbalogan City,RON 100
-Region VIII,Samar,Catbalogan City,RON 97
-Region VIII,Samar,Catbalogan City,RON 95
-Region VIII,Samar,Catbalogan City,RON 91
-Region VIII,Samar,Catbalogan City,DIESEL
-Region VIII,Samar,Catbalogan City,DIESEL PLUS
-Region VIII,Samar,Catbalogan City,KEROSENE
-Region VIII,Southern Leyte,Maasin City,RON 100
-Region VIII,Southern Leyte,Maasin City,RON 97
-Region VIII,Southern Leyte,Maasin City,RON 95
-Region VIII,Southern Leyte,Maasin City,RON 91
-Region VIII,Southern Leyte,Maasin City,DIESEL
-Region VIII,Southern Leyte,Maasin City,DIESEL PLUS
-Region VIII,Southern Leyte,Maasin City,KEROSENE
-Region VIII,Southern Leyte,Sogod,RON 100
-Region VIII,Southern Leyte,Sogod,RON 97
-Region VIII,Southern Leyte,Sogod,RON 95
-Region VIII,Southern Leyte,Sogod,RON 91
-Region VIII,Southern Leyte,Sogod,DIESEL
-Region VIII,Southern Leyte,Sogod,DIESEL PLUS
-Region VIII,Southern Leyte,Sogod,KEROSENE
-NIR,Negros Occidental,Bacolod City,RON 100
-NIR,Negros Occidental,Bacolod City,RON 97
-NIR,Negros Occidental,Bacolod City,RON 95
-NIR,Negros Occidental,Bacolod City,RON 91
-NIR,Negros Occidental,Bacolod City,DIESEL
-NIR,Negros Occidental,Bacolod City,DIESEL PLUS
-NIR,Negros Occidental,Bacolod City,KEROSENE
-NIR,Negros Occidental,Cadiz,RON 100
-NIR,Negros Occidental,Cadiz,RON 97
-NIR,Negros Occidental,Cadiz,RON 95
-NIR,Negros Occidental,Cadiz,RON 91
-NIR,Negros Occidental,Cadiz,DIESEL
-NIR,Negros Occidental,Cadiz,DIESEL PLUS
-NIR,Negros Occidental,Cadiz,KEROSENE
-NIR,Negros Occidental,Kabankalan City,RON 100
-NIR,Negros Occidental,Kabankalan City,RON 97
-NIR,Negros Occidental,Kabankalan City,RON 95
-NIR,Negros Occidental,Kabankalan City,RON 91
-NIR,Negros Occidental,Kabankalan City,DIESEL
-NIR,Negros Occidental,Kabankalan City,DIESEL PLUS
-NIR,Negros Occidental,Kabankalan City,KEROSENE
-NIR,Negros Occidental,San Carlos City,RON 100
-NIR,Negros Occidental,San Carlos City,RON 97
-NIR,Negros Occidental,San Carlos City,RON 95
-NIR,Negros Occidental,San Carlos City,RON 91
-NIR,Negros Occidental,San Carlos City,DIESEL
-NIR,Negros Occidental,San Carlos City,DIESEL PLUS
-NIR,Negros Occidental,San Carlos City,KEROSENE
-NIR,Negros Oriental,Bais City,RON 100
-NIR,Negros Oriental,Bais City,RON 97
-NIR,Negros Oriental,Bais City,RON 95
-NIR,Negros Oriental,Bais City,RON 91
-NIR,Negros Oriental,Bais City,DIESEL
-NIR,Negros Oriental,Bais City,DIESEL PLUS
-NIR,Negros Oriental,Bais City,KEROSENE
-NIR,Negros Oriental,Bayawan City,RON 100
-NIR,Negros Oriental,Bayawan City,RON 97
-NIR,Negros Oriental,Bayawan City,RON 95
-NIR,Negros Oriental,Bayawan City,RON 91
-NIR,Negros Oriental,Bayawan City,DIESEL
-NIR,Negros Oriental,Bayawan City,DIESEL PLUS
-NIR,Negros Oriental,Bayawan City,KEROSENE
-NIR,Negros Oriental,Canlaon City,RON 100
-NIR,Negros Oriental,Canlaon City,RON 97
-NIR,Negros Oriental,Canlaon City,RON 95
-NIR,Negros Oriental,Canlaon City,RON 91
-NIR,Negros Oriental,Canlaon City,DIESEL
-NIR,Negros Oriental,Canlaon City,DIESEL PLUS
-NIR,Negros Oriental,Canlaon City,KEROSENE
-NIR,Negros Oriental,Dumaguete City,RON 100
-NIR,Negros Oriental,Dumaguete City,RON 97
-NIR,Negros Oriental,Dumaguete City,RON 95
-NIR,Negros Oriental,Dumaguete City,RON 91
-NIR,Negros Oriental,Dumaguete City,DIESEL
-NIR,Negros Oriental,Dumaguete City,DIESEL PLUS
-NIR,Negros Oriental,Dumaguete City,KEROSENE
-NIR,Negros Oriental,Guihulngan City,RON 100
-NIR,Negros Oriental,Guihulngan City,RON 97
-NIR,Negros Oriental,Guihulngan City,RON 95
-NIR,Negros Oriental,Guihulngan City,RON 91
-NIR,Negros Oriental,Guihulngan City,DIESEL
-NIR,Negros Oriental,Guihulngan City,DIESEL PLUS
-NIR,Negros Oriental,Guihulngan City,KEROSENE
-NIR,Negros Oriental,La Libertad,RON 100
-NIR,Negros Oriental,La Libertad,RON 97
-NIR,Negros Oriental,La Libertad,RON 95
-NIR,Negros Oriental,La Libertad,RON 91
-NIR,Negros Oriental,La Libertad,DIESEL
-NIR,Negros Oriental,La Libertad,DIESEL PLUS
-NIR,Negros Oriental,La Libertad,KEROSENE
-NIR,Negros Oriental,Tanjay,RON 100
-NIR,Negros Oriental,Tanjay,RON 97
-NIR,Negros Oriental,Tanjay,RON 95
-NIR,Negros Oriental,Tanjay,RON 91
-NIR,Negros Oriental,Tanjay,DIESEL
-NIR,Negros Oriental,Tanjay,DIESEL PLUS
-NIR,Negros Oriental,Tanjay,KEROSENE
-NIR,Siquijor,Siquijor,RON 100
-NIR,Siquijor,Siquijor,RON 97
-NIR,Siquijor,Siquijor,RON 95
-NIR,Siquijor,Siquijor,RON 91
-NIR,Siquijor,Siquijor,DIESEL
-NIR,Siquijor,Siquijor,DIESEL PLUS
-NIR,Siquijor,Siquijor,KEROSENE
+CAR,Abra,Bangued City,RON 100
+CAR,Abra,Bangued City,RON 97
+CAR,Abra,Bangued City,RON 95
+CAR,Abra,Bangued City,RON 91
+CAR,Abra,Bangued City,DIESEL
+CAR,Abra,Bangued City,DIESEL PLUS
+CAR,Abra,Bangued City,KEROSENE
+CAR,Apayao,Luna,RON 100
+CAR,Apayao,Luna,RON 97
+CAR,Apayao,Luna,RON 95
+CAR,Apayao,Luna,RON 91
+CAR,Apayao,Luna,DIESEL
+CAR,Apayao,Luna,DIESEL PLUS
+CAR,Apayao,Luna,KEROSENE
+CAR,Benguet,Baguio City,RON 100
+CAR,Benguet,Baguio City,RON 97
+CAR,Benguet,Baguio City,RON 95
+CAR,Benguet,Baguio City,RON 91
+CAR,Benguet,Baguio City,DIESEL
+CAR,Benguet,Baguio City,DIESEL PLUS
+CAR,Benguet,Baguio City,KEROSENE
+CAR,Benguet,La Trinidad,RON 100
+CAR,Benguet,La Trinidad,RON 97
+CAR,Benguet,La Trinidad,RON 95
+CAR,Benguet,La Trinidad,RON 91
+CAR,Benguet,La Trinidad,DIESEL
+CAR,Benguet,La Trinidad,DIESEL PLUS
+CAR,Benguet,La Trinidad,KEROSENE
+CAR,Ifugao,Lagawe,RON 100
+CAR,Ifugao,Lagawe,RON 97
+CAR,Ifugao,Lagawe,RON 95
+CAR,Ifugao,Lagawe,RON 91
+CAR,Ifugao,Lagawe,DIESEL
+CAR,Ifugao,Lagawe,DIESEL PLUS
+CAR,Ifugao,Lagawe,KEROSENE
+CAR,Kalinga,Tabuk City,RON 100
+CAR,Kalinga,Tabuk City,RON 97
+CAR,Kalinga,Tabuk City,RON 95
+CAR,Kalinga,Tabuk City,RON 91
+CAR,Kalinga,Tabuk City,DIESEL
+CAR,Kalinga,Tabuk City,DIESEL PLUS
+CAR,Kalinga,Tabuk City,KEROSENE
+CAR,Mountain Province,Bauko,RON 100
+CAR,Mountain Province,Bauko,RON 97
+CAR,Mountain Province,Bauko,RON 95
+CAR,Mountain Province,Bauko,RON 91
+CAR,Mountain Province,Bauko,DIESEL
+CAR,Mountain Province,Bauko,DIESEL PLUS
+CAR,Mountain Province,Bauko,KEROSENE
+CAR,Mountain Province,Sagada,RON 100
+CAR,Mountain Province,Sagada,RON 97
+CAR,Mountain Province,Sagada,RON 95
+CAR,Mountain Province,Sagada,RON 91
+CAR,Mountain Province,Sagada,DIESEL
+CAR,Mountain Province,Sagada,DIESEL PLUS
+CAR,Mountain Province,Sagada,KEROSENE
+Region I,Ilocos Norte,Batac City,RON 100
+Region I,Ilocos Norte,Batac City,RON 97
+Region I,Ilocos Norte,Batac City,RON 95
+Region I,Ilocos Norte,Batac City,RON 91
+Region I,Ilocos Norte,Batac City,DIESEL
+Region I,Ilocos Norte,Batac City,DIESEL PLUS
+Region I,Ilocos Norte,Batac City,KEROSENE
+Region I,Ilocos Norte,Laoag City,RON 100
+Region I,Ilocos Norte,Laoag City,RON 97
+Region I,Ilocos Norte,Laoag City,RON 95
+Region I,Ilocos Norte,Laoag City,RON 91
+Region I,Ilocos Norte,Laoag City,DIESEL
+Region I,Ilocos Norte,Laoag City,DIESEL PLUS
+Region I,Ilocos Norte,Laoag City,KEROSENE
+Region I,Ilocos Sur,Bantay,RON 100
+Region I,Ilocos Sur,Bantay,RON 97
+Region I,Ilocos Sur,Bantay,RON 95
+Region I,Ilocos Sur,Bantay,RON 91
+Region I,Ilocos Sur,Bantay,DIESEL
+Region I,Ilocos Sur,Bantay,DIESEL PLUS
+Region I,Ilocos Sur,Bantay,KEROSENE
+Region I,Ilocos Sur,Candon City,RON 100
+Region I,Ilocos Sur,Candon City,RON 97
+Region I,Ilocos Sur,Candon City,RON 95
+Region I,Ilocos Sur,Candon City,RON 91
+Region I,Ilocos Sur,Candon City,DIESEL
+Region I,Ilocos Sur,Candon City,DIESEL PLUS
+Region I,Ilocos Sur,Candon City,KEROSENE
+Region I,Ilocos Sur,Vigan City,RON 100
+Region I,Ilocos Sur,Vigan City,RON 97
+Region I,Ilocos Sur,Vigan City,RON 95
+Region I,Ilocos Sur,Vigan City,RON 91
+Region I,Ilocos Sur,Vigan City,DIESEL
+Region I,Ilocos Sur,Vigan City,DIESEL PLUS
+Region I,Ilocos Sur,Vigan City,KEROSENE
+Region I,La Union,San Fernando City,RON 100
+Region I,La Union,San Fernando City,RON 97
+Region I,La Union,San Fernando City,RON 95
+Region I,La Union,San Fernando City,RON 91
+Region I,La Union,San Fernando City,DIESEL
+Region I,La Union,San Fernando City,DIESEL PLUS
+Region I,La Union,San Fernando City,KEROSENE
+Region I,La Union,Rosario,RON 100
+Region I,La Union,Rosario,RON 97
+Region I,La Union,Rosario,RON 95
+Region I,La Union,Rosario,RON 91
+Region I,La Union,Rosario,DIESEL
+Region I,La Union,Rosario,DIESEL PLUS
+Region I,La Union,Rosario,KEROSENE
+Region I,La Union,Agoo,RON 100
+Region I,La Union,Agoo,RON 97
+Region I,La Union,Agoo,RON 95
+Region I,La Union,Agoo,RON 91
+Region I,La Union,Agoo,DIESEL
+Region I,La Union,Agoo,DIESEL PLUS
+Region I,La Union,Agoo,KEROSENE
+Region I,La Union,Aringay,RON 100
+Region I,La Union,Aringay,RON 97
+Region I,La Union,Aringay,RON 95
+Region I,La Union,Aringay,RON 91
+Region I,La Union,Aringay,DIESEL
+Region I,La Union,Aringay,DIESEL PLUS
+Region I,La Union,Aringay,KEROSENE
+Region I,La Union,Caba,RON 100
+Region I,La Union,Caba,RON 97
+Region I,La Union,Caba,RON 95
+Region I,La Union,Caba,RON 91
+Region I,La Union,Caba,DIESEL
+Region I,La Union,Caba,DIESEL PLUS
+Region I,La Union,Caba,KEROSENE
+Region I,La Union,Bacnotan,RON 100
+Region I,La Union,Bacnotan,RON 97
+Region I,La Union,Bacnotan,RON 95
+Region I,La Union,Bacnotan,RON 91
+Region I,La Union,Bacnotan,DIESEL
+Region I,La Union,Bacnotan,DIESEL PLUS
+Region I,La Union,Bacnotan,KEROSENE
+Region I,Pangasinan,Alaminos City,RON 100
+Region I,Pangasinan,Alaminos City,RON 97
+Region I,Pangasinan,Alaminos City,RON 95
+Region I,Pangasinan,Alaminos City,RON 91
+Region I,Pangasinan,Alaminos City,DIESEL
+Region I,Pangasinan,Alaminos City,DIESEL PLUS
+Region I,Pangasinan,Alaminos City,KEROSENE
+Region I,Pangasinan,Dagupan City,RON 100
+Region I,Pangasinan,Dagupan City,RON 97
+Region I,Pangasinan,Dagupan City,RON 95
+Region I,Pangasinan,Dagupan City,RON 91
+Region I,Pangasinan,Dagupan City,DIESEL
+Region I,Pangasinan,Dagupan City,DIESEL PLUS
+Region I,Pangasinan,Dagupan City,KEROSENE
+Region I,Pangasinan,Lingayen,RON 100
+Region I,Pangasinan,Lingayen,RON 97
+Region I,Pangasinan,Lingayen,RON 95
+Region I,Pangasinan,Lingayen,RON 91
+Region I,Pangasinan,Lingayen,DIESEL
+Region I,Pangasinan,Lingayen,DIESEL PLUS
+Region I,Pangasinan,Lingayen,KEROSENE
+Region I,Pangasinan,Rosales,RON 100
+Region I,Pangasinan,Rosales,RON 97
+Region I,Pangasinan,Rosales,RON 95
+Region I,Pangasinan,Rosales,RON 91
+Region I,Pangasinan,Rosales,DIESEL
+Region I,Pangasinan,Rosales,DIESEL PLUS
+Region I,Pangasinan,Rosales,KEROSENE
+Region I,Pangasinan,San Carlos City,RON 100
+Region I,Pangasinan,San Carlos City,RON 97
+Region I,Pangasinan,San Carlos City,RON 95
+Region I,Pangasinan,San Carlos City,RON 91
+Region I,Pangasinan,San Carlos City,DIESEL
+Region I,Pangasinan,San Carlos City,DIESEL PLUS
+Region I,Pangasinan,San Carlos City,KEROSENE
+Region I,Pangasinan,Urdaneta City,RON 100
+Region I,Pangasinan,Urdaneta City,RON 97
+Region I,Pangasinan,Urdaneta City,RON 95
+Region I,Pangasinan,Urdaneta City,RON 91
+Region I,Pangasinan,Urdaneta City,DIESEL
+Region I,Pangasinan,Urdaneta City,DIESEL PLUS
+Region I,Pangasinan,Urdaneta City,KEROSENE
+Region II,Batanes,Basco,RON 100
+Region II,Batanes,Basco,RON 97
+Region II,Batanes,Basco,RON 95
+Region II,Batanes,Basco,RON 91
+Region II,Batanes,Basco,DIESEL
+Region II,Batanes,Basco,DIESEL PLUS
+Region II,Batanes,Basco,KEROSENE
+Region II,Cagayan,Alcala,RON 100
+Region II,Cagayan,Alcala,RON 97
+Region II,Cagayan,Alcala,RON 95
+Region II,Cagayan,Alcala,RON 91
+Region II,Cagayan,Alcala,DIESEL
+Region II,Cagayan,Alcala,DIESEL PLUS
+Region II,Cagayan,Alcala,KEROSENE
+Region II,Cagayan,Penablanca,RON 100
+Region II,Cagayan,Penablanca,RON 97
+Region II,Cagayan,Penablanca,RON 95
+Region II,Cagayan,Penablanca,RON 91
+Region II,Cagayan,Penablanca,DIESEL
+Region II,Cagayan,Penablanca,DIESEL PLUS
+Region II,Cagayan,Penablanca,KEROSENE
+Region II,Cagayan,Ballesteros,RON 100
+Region II,Cagayan,Ballesteros,RON 97
+Region II,Cagayan,Ballesteros,RON 95
+Region II,Cagayan,Ballesteros,RON 91
+Region II,Cagayan,Ballesteros,DIESEL
+Region II,Cagayan,Ballesteros,DIESEL PLUS
+Region II,Cagayan,Ballesteros,KEROSENE
+Region II,Cagayan,Claveria,RON 100
+Region II,Cagayan,Claveria,RON 97
+Region II,Cagayan,Claveria,RON 95
+Region II,Cagayan,Claveria,RON 91
+Region II,Cagayan,Claveria,DIESEL
+Region II,Cagayan,Claveria,DIESEL PLUS
+Region II,Cagayan,Claveria,KEROSENE
+Region II,Cagayan,Enrile,RON 100
+Region II,Cagayan,Enrile,RON 97
+Region II,Cagayan,Enrile,RON 95
+Region II,Cagayan,Enrile,RON 91
+Region II,Cagayan,Enrile,DIESEL
+Region II,Cagayan,Enrile,DIESEL PLUS
+Region II,Cagayan,Enrile,KEROSENE
+Region II,Cagayan,Iguig,RON 100
+Region II,Cagayan,Iguig,RON 97
+Region II,Cagayan,Iguig,RON 95
+Region II,Cagayan,Iguig,RON 91
+Region II,Cagayan,Iguig,DIESEL
+Region II,Cagayan,Iguig,DIESEL PLUS
+Region II,Cagayan,Iguig,KEROSENE
+Region II,Cagayan,Lal Lo,RON 100
+Region II,Cagayan,Lal Lo,RON 97
+Region II,Cagayan,Lal Lo,RON 95
+Region II,Cagayan,Lal Lo,RON 91
+Region II,Cagayan,Lal Lo,DIESEL
+Region II,Cagayan,Lal Lo,DIESEL PLUS
+Region II,Cagayan,Lal Lo,KEROSENE
+Region II,Cagayan,Solana,RON 100
+Region II,Cagayan,Solana,RON 97
+Region II,Cagayan,Solana,RON 95
+Region II,Cagayan,Solana,RON 91
+Region II,Cagayan,Solana,DIESEL
+Region II,Cagayan,Solana,DIESEL PLUS
+Region II,Cagayan,Solana,KEROSENE
+Region II,Cagayan,Tuguegarao City,RON 100
+Region II,Cagayan,Tuguegarao City,RON 97
+Region II,Cagayan,Tuguegarao City,RON 95
+Region II,Cagayan,Tuguegarao City,RON 91
+Region II,Cagayan,Tuguegarao City,DIESEL
+Region II,Cagayan,Tuguegarao City,DIESEL PLUS
+Region II,Cagayan,Tuguegarao City,KEROSENE
+Region II,Cagayan,Aparri,RON 100
+Region II,Cagayan,Aparri,RON 97
+Region II,Cagayan,Aparri,RON 95
+Region II,Cagayan,Aparri,RON 91
+Region II,Cagayan,Aparri,DIESEL
+Region II,Cagayan,Aparri,DIESEL PLUS
+Region II,Cagayan,Aparri,KEROSENE
+Region II,Cagayan,Camalaniugan,RON 100
+Region II,Cagayan,Camalaniugan,RON 97
+Region II,Cagayan,Camalaniugan,RON 95
+Region II,Cagayan,Camalaniugan,RON 91
+Region II,Cagayan,Camalaniugan,DIESEL
+Region II,Cagayan,Camalaniugan,DIESEL PLUS
+Region II,Cagayan,Camalaniugan,KEROSENE
+Region II,Cagayan,Gattaran,RON 100
+Region II,Cagayan,Gattaran,RON 97
+Region II,Cagayan,Gattaran,RON 95
+Region II,Cagayan,Gattaran,RON 91
+Region II,Cagayan,Gattaran,DIESEL
+Region II,Cagayan,Gattaran,DIESEL PLUS
+Region II,Cagayan,Gattaran,KEROSENE
+Region II,Isabela,Alicia,RON 100
+Region II,Isabela,Alicia,RON 97
+Region II,Isabela,Alicia,RON 95
+Region II,Isabela,Alicia,RON 91
+Region II,Isabela,Alicia,DIESEL
+Region II,Isabela,Alicia,DIESEL PLUS
+Region II,Isabela,Alicia,KEROSENE
+Region II,Isabela,Angadanan,RON 100
+Region II,Isabela,Angadanan,RON 97
+Region II,Isabela,Angadanan,RON 95
+Region II,Isabela,Angadanan,RON 91
+Region II,Isabela,Angadanan,DIESEL
+Region II,Isabela,Angadanan,DIESEL PLUS
+Region II,Isabela,Angadanan,KEROSENE
+Region II,Isabela,Cauayan City,RON 100
+Region II,Isabela,Cauayan City,RON 97
+Region II,Isabela,Cauayan City,RON 95
+Region II,Isabela,Cauayan City,RON 91
+Region II,Isabela,Cauayan City,DIESEL
+Region II,Isabela,Cauayan City,DIESEL PLUS
+Region II,Isabela,Cauayan City,KEROSENE
+Region II,Isabela,Cabagan,RON 100
+Region II,Isabela,Cabagan,RON 97
+Region II,Isabela,Cabagan,RON 95
+Region II,Isabela,Cabagan,RON 91
+Region II,Isabela,Cabagan,DIESEL
+Region II,Isabela,Cabagan,DIESEL PLUS
+Region II,Isabela,Cabagan,KEROSENE
+Region II,Isabela,Roxas,RON 100
+Region II,Isabela,Roxas,RON 97
+Region II,Isabela,Roxas,RON 95
+Region II,Isabela,Roxas,RON 91
+Region II,Isabela,Roxas,DIESEL
+Region II,Isabela,Roxas,DIESEL PLUS
+Region II,Isabela,Roxas,KEROSENE
+Region II,Isabela,Ilagan City,RON 100
+Region II,Isabela,Ilagan City,RON 97
+Region II,Isabela,Ilagan City,RON 95
+Region II,Isabela,Ilagan City,RON 91
+Region II,Isabela,Ilagan City,DIESEL
+Region II,Isabela,Ilagan City,DIESEL PLUS
+Region II,Isabela,Ilagan City,KEROSENE
+Region II,Isabela,Santiago City,RON 100
+Region II,Isabela,Santiago City,RON 97
+Region II,Isabela,Santiago City,RON 95
+Region II,Isabela,Santiago City,RON 91
+Region II,Isabela,Santiago City,DIESEL
+Region II,Isabela,Santiago City,DIESEL PLUS
+Region II,Isabela,Santiago City,KEROSENE
+Region II,Isabela,Cordon,RON 100
+Region II,Isabela,Cordon,RON 97
+Region II,Isabela,Cordon,RON 95
+Region II,Isabela,Cordon,RON 91
+Region II,Isabela,Cordon,DIESEL
+Region II,Isabela,Cordon,DIESEL PLUS
+Region II,Isabela,Cordon,KEROSENE
+Region II,Isabela,San Mateo,RON 100
+Region II,Isabela,San Mateo,RON 97
+Region II,Isabela,San Mateo,RON 95
+Region II,Isabela,San Mateo,RON 91
+Region II,Isabela,San Mateo,DIESEL
+Region II,Isabela,San Mateo,DIESEL PLUS
+Region II,Isabela,San Mateo,KEROSENE
+Region II,Isabela,Tumauini,RON 100
+Region II,Isabela,Tumauini,RON 97
+Region II,Isabela,Tumauini,RON 95
+Region II,Isabela,Tumauini,RON 91
+Region II,Isabela,Tumauini,DIESEL
+Region II,Isabela,Tumauini,DIESEL PLUS
+Region II,Isabela,Tumauini,KEROSENE
+Region II,Nueva Vizcaya,Bambang,RON 100
+Region II,Nueva Vizcaya,Bambang,RON 97
+Region II,Nueva Vizcaya,Bambang,RON 95
+Region II,Nueva Vizcaya,Bambang,RON 91
+Region II,Nueva Vizcaya,Bambang,DIESEL
+Region II,Nueva Vizcaya,Bambang,DIESEL PLUS
+Region II,Nueva Vizcaya,Bambang,KEROSENE
+Region II,Nueva Vizcaya,Bagabag,RON 100
+Region II,Nueva Vizcaya,Bagabag,RON 97
+Region II,Nueva Vizcaya,Bagabag,RON 95
+Region II,Nueva Vizcaya,Bagabag,RON 91
+Region II,Nueva Vizcaya,Bagabag,DIESEL
+Region II,Nueva Vizcaya,Bagabag,DIESEL PLUS
+Region II,Nueva Vizcaya,Bagabag,KEROSENE
+Region II,Nueva Vizcaya,Bayombong,RON 100
+Region II,Nueva Vizcaya,Bayombong,RON 97
+Region II,Nueva Vizcaya,Bayombong,RON 95
+Region II,Nueva Vizcaya,Bayombong,RON 91
+Region II,Nueva Vizcaya,Bayombong,DIESEL
+Region II,Nueva Vizcaya,Bayombong,DIESEL PLUS
+Region II,Nueva Vizcaya,Bayombong,KEROSENE
+Region II,Nueva Vizcaya,Solano,RON 100
+Region II,Nueva Vizcaya,Solano,RON 97
+Region II,Nueva Vizcaya,Solano,RON 95
+Region II,Nueva Vizcaya,Solano,RON 91
+Region II,Nueva Vizcaya,Solano,DIESEL
+Region II,Nueva Vizcaya,Solano,DIESEL PLUS
+Region II,Nueva Vizcaya,Solano,KEROSENE
+Region II,Quirino,Cabarroguis,RON 100
+Region II,Quirino,Cabarroguis,RON 97
+Region II,Quirino,Cabarroguis,RON 95
+Region II,Quirino,Cabarroguis,RON 91
+Region II,Quirino,Cabarroguis,DIESEL
+Region II,Quirino,Cabarroguis,DIESEL PLUS
+Region II,Quirino,Cabarroguis,KEROSENE
+Region II,Quirino,Diffun,RON 100
+Region II,Quirino,Diffun,RON 97
+Region II,Quirino,Diffun,RON 95
+Region II,Quirino,Diffun,RON 91
+Region II,Quirino,Diffun,DIESEL
+Region II,Quirino,Diffun,DIESEL PLUS
+Region II,Quirino,Diffun,KEROSENE
+Region II,Quirino,Maddela,RON 100
+Region II,Quirino,Maddela,RON 97
+Region II,Quirino,Maddela,RON 95
+Region II,Quirino,Maddela,RON 91
+Region II,Quirino,Maddela,DIESEL
+Region II,Quirino,Maddela,DIESEL PLUS
+Region II,Quirino,Maddela,KEROSENE
+Region III,Aurora,Baler,RON 100
+Region III,Aurora,Baler,RON 97
+Region III,Aurora,Baler,RON 95
+Region III,Aurora,Baler,RON 91
+Region III,Aurora,Baler,DIESEL
+Region III,Aurora,Baler,DIESEL PLUS
+Region III,Aurora,Baler,KEROSENE
+Region III,Bataan,Balanga,RON 100
+Region III,Bataan,Balanga,RON 97
+Region III,Bataan,Balanga,RON 95
+Region III,Bataan,Balanga,RON 91
+Region III,Bataan,Balanga,DIESEL
+Region III,Bataan,Balanga,DIESEL PLUS
+Region III,Bataan,Balanga,KEROSENE
+Region III,Bataan,Abucay,RON 100
+Region III,Bataan,Abucay,RON 97
+Region III,Bataan,Abucay,RON 95
+Region III,Bataan,Abucay,RON 91
+Region III,Bataan,Abucay,DIESEL
+Region III,Bataan,Abucay,DIESEL PLUS
+Region III,Bataan,Abucay,KEROSENE
+Region III,Bataan,Hermosa,RON 100
+Region III,Bataan,Hermosa,RON 97
+Region III,Bataan,Hermosa,RON 95
+Region III,Bataan,Hermosa,RON 91
+Region III,Bataan,Hermosa,DIESEL
+Region III,Bataan,Hermosa,DIESEL PLUS
+Region III,Bataan,Hermosa,KEROSENE
+Region III,Bataan,Mariveles,RON 100
+Region III,Bataan,Mariveles,RON 97
+Region III,Bataan,Mariveles,RON 95
+Region III,Bataan,Mariveles,RON 91
+Region III,Bataan,Mariveles,DIESEL
+Region III,Bataan,Mariveles,DIESEL PLUS
+Region III,Bataan,Mariveles,KEROSENE
+Region III,Bulacan,Balagtas,RON 100
+Region III,Bulacan,Balagtas,RON 97
+Region III,Bulacan,Balagtas,RON 95
+Region III,Bulacan,Balagtas,RON 91
+Region III,Bulacan,Balagtas,DIESEL
+Region III,Bulacan,Balagtas,DIESEL PLUS
+Region III,Bulacan,Balagtas,KEROSENE
+Region III,Bulacan,Bocaue,RON 100
+Region III,Bulacan,Bocaue,RON 97
+Region III,Bulacan,Bocaue,RON 95
+Region III,Bulacan,Bocaue,RON 91
+Region III,Bulacan,Bocaue,DIESEL
+Region III,Bulacan,Bocaue,DIESEL PLUS
+Region III,Bulacan,Bocaue,KEROSENE
+Region III,Bulacan,Calumpit,RON 100
+Region III,Bulacan,Calumpit,RON 97
+Region III,Bulacan,Calumpit,RON 95
+Region III,Bulacan,Calumpit,RON 91
+Region III,Bulacan,Calumpit,DIESEL
+Region III,Bulacan,Calumpit,DIESEL PLUS
+Region III,Bulacan,Calumpit,KEROSENE
+Region III,Bulacan,Baliuag City,RON 100
+Region III,Bulacan,Baliuag City,RON 97
+Region III,Bulacan,Baliuag City,RON 95
+Region III,Bulacan,Baliuag City,RON 91
+Region III,Bulacan,Baliuag City,DIESEL
+Region III,Bulacan,Baliuag City,DIESEL PLUS
+Region III,Bulacan,Baliuag City,KEROSENE
+Region III,Bulacan,City of San Jose del Monte,RON 100
+Region III,Bulacan,City of San Jose del Monte,RON 97
+Region III,Bulacan,City of San Jose del Monte,RON 95
+Region III,Bulacan,City of San Jose del Monte,RON 91
+Region III,Bulacan,City of San Jose del Monte,DIESEL
+Region III,Bulacan,City of San Jose del Monte,DIESEL PLUS
+Region III,Bulacan,City of San Jose del Monte,KEROSENE
+Region III,Bulacan,San Miguel,RON 100
+Region III,Bulacan,San Miguel,RON 97
+Region III,Bulacan,San Miguel,RON 95
+Region III,Bulacan,San Miguel,RON 91
+Region III,Bulacan,San Miguel,DIESEL
+Region III,Bulacan,San Miguel,DIESEL PLUS
+Region III,Bulacan,San Miguel,KEROSENE
+Region III,Bulacan,Sta Maria,RON 100
+Region III,Bulacan,Sta Maria,RON 97
+Region III,Bulacan,Sta Maria,RON 95
+Region III,Bulacan,Sta Maria,RON 91
+Region III,Bulacan,Sta Maria,DIESEL
+Region III,Bulacan,Sta Maria,DIESEL PLUS
+Region III,Bulacan,Sta Maria,KEROSENE
+Region III,Bulacan,Hagonoy,RON 100
+Region III,Bulacan,Hagonoy,RON 97
+Region III,Bulacan,Hagonoy,RON 95
+Region III,Bulacan,Hagonoy,RON 91
+Region III,Bulacan,Hagonoy,DIESEL
+Region III,Bulacan,Hagonoy,DIESEL PLUS
+Region III,Bulacan,Hagonoy,KEROSENE
+Region III,Bulacan,Malolos City,RON 100
+Region III,Bulacan,Malolos City,RON 97
+Region III,Bulacan,Malolos City,RON 95
+Region III,Bulacan,Malolos City,RON 91
+Region III,Bulacan,Malolos City,DIESEL
+Region III,Bulacan,Malolos City,DIESEL PLUS
+Region III,Bulacan,Malolos City,KEROSENE
+Region III,Bulacan,Meycauayan City,RON 100
+Region III,Bulacan,Meycauayan City,RON 97
+Region III,Bulacan,Meycauayan City,RON 95
+Region III,Bulacan,Meycauayan City,RON 91
+Region III,Bulacan,Meycauayan City,DIESEL
+Region III,Bulacan,Meycauayan City,DIESEL PLUS
+Region III,Bulacan,Meycauayan City,KEROSENE
+Region III,Bulacan,Pulilan,RON 100
+Region III,Bulacan,Pulilan,RON 97
+Region III,Bulacan,Pulilan,RON 95
+Region III,Bulacan,Pulilan,RON 91
+Region III,Bulacan,Pulilan,DIESEL
+Region III,Bulacan,Pulilan,DIESEL PLUS
+Region III,Bulacan,Pulilan,KEROSENE
+Region III,Bulacan,San Rafael,RON 100
+Region III,Bulacan,San Rafael,RON 97
+Region III,Bulacan,San Rafael,RON 95
+Region III,Bulacan,San Rafael,RON 91
+Region III,Bulacan,San Rafael,DIESEL
+Region III,Bulacan,San Rafael,DIESEL PLUS
+Region III,Bulacan,San Rafael,KEROSENE
+Region III,Bulacan,San Ildefonso,RON 100
+Region III,Bulacan,San Ildefonso,RON 97
+Region III,Bulacan,San Ildefonso,RON 95
+Region III,Bulacan,San Ildefonso,RON 91
+Region III,Bulacan,San Ildefonso,DIESEL
+Region III,Bulacan,San Ildefonso,DIESEL PLUS
+Region III,Bulacan,San Ildefonso,KEROSENE
+Region III,Nueva Ecija,Cabanatuan City,RON 100
+Region III,Nueva Ecija,Cabanatuan City,RON 97
+Region III,Nueva Ecija,Cabanatuan City,RON 95
+Region III,Nueva Ecija,Cabanatuan City,RON 91
+Region III,Nueva Ecija,Cabanatuan City,DIESEL
+Region III,Nueva Ecija,Cabanatuan City,DIESEL PLUS
+Region III,Nueva Ecija,Cabanatuan City,KEROSENE
+Region III,Nueva Ecija,Cabiao,RON 100
+Region III,Nueva Ecija,Cabiao,RON 97
+Region III,Nueva Ecija,Cabiao,RON 95
+Region III,Nueva Ecija,Cabiao,RON 91
+Region III,Nueva Ecija,Cabiao,DIESEL
+Region III,Nueva Ecija,Cabiao,DIESEL PLUS
+Region III,Nueva Ecija,Cabiao,KEROSENE
+Region III,Nueva Ecija,Gapan City,RON 100
+Region III,Nueva Ecija,Gapan City,RON 97
+Region III,Nueva Ecija,Gapan City,RON 95
+Region III,Nueva Ecija,Gapan City,RON 91
+Region III,Nueva Ecija,Gapan City,DIESEL
+Region III,Nueva Ecija,Gapan City,DIESEL PLUS
+Region III,Nueva Ecija,Gapan City,KEROSENE
+Region III,Nueva Ecija,Sta Rosa,RON 100
+Region III,Nueva Ecija,Sta Rosa,RON 97
+Region III,Nueva Ecija,Sta Rosa,RON 95
+Region III,Nueva Ecija,Sta Rosa,RON 91
+Region III,Nueva Ecija,Sta Rosa,DIESEL
+Region III,Nueva Ecija,Sta Rosa,DIESEL PLUS
+Region III,Nueva Ecija,Sta Rosa,KEROSENE
+Region III,Nueva Ecija,Palayan City,RON 100
+Region III,Nueva Ecija,Palayan City,RON 97
+Region III,Nueva Ecija,Palayan City,RON 95
+Region III,Nueva Ecija,Palayan City,RON 91
+Region III,Nueva Ecija,Palayan City,DIESEL
+Region III,Nueva Ecija,Palayan City,DIESEL PLUS
+Region III,Nueva Ecija,Palayan City,KEROSENE
+Region III,Nueva Ecija,San Jose City,RON 100
+Region III,Nueva Ecija,San Jose City,RON 97
+Region III,Nueva Ecija,San Jose City,RON 95
+Region III,Nueva Ecija,San Jose City,RON 91
+Region III,Nueva Ecija,San Jose City,DIESEL
+Region III,Nueva Ecija,San Jose City,DIESEL PLUS
+Region III,Nueva Ecija,San Jose City,KEROSENE
+Region III,Nueva Ecija,Science City of Munoz,RON 100
+Region III,Nueva Ecija,Science City of Munoz,RON 97
+Region III,Nueva Ecija,Science City of Munoz,RON 95
+Region III,Nueva Ecija,Science City of Munoz,RON 91
+Region III,Nueva Ecija,Science City of Munoz,DIESEL
+Region III,Nueva Ecija,Science City of Munoz,DIESEL PLUS
+Region III,Nueva Ecija,Science City of Munoz,KEROSENE
+Region III,Nueva Ecija,Bongabon,RON 100
+Region III,Nueva Ecija,Bongabon,RON 97
+Region III,Nueva Ecija,Bongabon,RON 95
+Region III,Nueva Ecija,Bongabon,RON 91
+Region III,Nueva Ecija,Bongabon,DIESEL
+Region III,Nueva Ecija,Bongabon,DIESEL PLUS
+Region III,Nueva Ecija,Bongabon,KEROSENE
+Region III,Nueva Ecija,Guimba,RON 100
+Region III,Nueva Ecija,Guimba,RON 97
+Region III,Nueva Ecija,Guimba,RON 95
+Region III,Nueva Ecija,Guimba,RON 91
+Region III,Nueva Ecija,Guimba,DIESEL
+Region III,Nueva Ecija,Guimba,DIESEL PLUS
+Region III,Nueva Ecija,Guimba,KEROSENE
+Region III,Nueva Ecija,San Leonardo,RON 100
+Region III,Nueva Ecija,San Leonardo,RON 97
+Region III,Nueva Ecija,San Leonardo,RON 95
+Region III,Nueva Ecija,San Leonardo,RON 91
+Region III,Nueva Ecija,San Leonardo,DIESEL
+Region III,Nueva Ecija,San Leonardo,DIESEL PLUS
+Region III,Nueva Ecija,San Leonardo,KEROSENE
+Region III,Pampanga,Angeles City,RON 100
+Region III,Pampanga,Angeles City,RON 97
+Region III,Pampanga,Angeles City,RON 95
+Region III,Pampanga,Angeles City,RON 91
+Region III,Pampanga,Angeles City,DIESEL
+Region III,Pampanga,Angeles City,DIESEL PLUS
+Region III,Pampanga,Angeles City,KEROSENE
+Region III,Pampanga,Mabalacat City,RON 100
+Region III,Pampanga,Mabalacat City,RON 97
+Region III,Pampanga,Mabalacat City,RON 95
+Region III,Pampanga,Mabalacat City,RON 91
+Region III,Pampanga,Mabalacat City,DIESEL
+Region III,Pampanga,Mabalacat City,DIESEL PLUS
+Region III,Pampanga,Mabalacat City,KEROSENE
+Region III,Pampanga,Lubao,RON 100
+Region III,Pampanga,Lubao,RON 97
+Region III,Pampanga,Lubao,RON 95
+Region III,Pampanga,Lubao,RON 91
+Region III,Pampanga,Lubao,DIESEL
+Region III,Pampanga,Lubao,DIESEL PLUS
+Region III,Pampanga,Lubao,KEROSENE
+Region III,Pampanga,City of San Fernando,RON 100
+Region III,Pampanga,City of San Fernando,RON 97
+Region III,Pampanga,City of San Fernando,RON 95
+Region III,Pampanga,City of San Fernando,RON 91
+Region III,Pampanga,City of San Fernando,DIESEL
+Region III,Pampanga,City of San Fernando,DIESEL PLUS
+Region III,Pampanga,City of San Fernando,KEROSENE
+Region III,Pampanga,Mexico,RON 100
+Region III,Pampanga,Mexico,RON 97
+Region III,Pampanga,Mexico,RON 95
+Region III,Pampanga,Mexico,RON 91
+Region III,Pampanga,Mexico,DIESEL
+Region III,Pampanga,Mexico,DIESEL PLUS
+Region III,Pampanga,Mexico,KEROSENE
+Region III,Pampanga,Arayat,RON 100
+Region III,Pampanga,Arayat,RON 97
+Region III,Pampanga,Arayat,RON 95
+Region III,Pampanga,Arayat,RON 91
+Region III,Pampanga,Arayat,DIESEL
+Region III,Pampanga,Arayat,DIESEL PLUS
+Region III,Pampanga,Arayat,KEROSENE
+Region III,Pampanga,Bacolor,RON 100
+Region III,Pampanga,Bacolor,RON 97
+Region III,Pampanga,Bacolor,RON 95
+Region III,Pampanga,Bacolor,RON 91
+Region III,Pampanga,Bacolor,DIESEL
+Region III,Pampanga,Bacolor,DIESEL PLUS
+Region III,Pampanga,Bacolor,KEROSENE
+Region III,Pampanga,Guagua,RON 100
+Region III,Pampanga,Guagua,RON 97
+Region III,Pampanga,Guagua,RON 95
+Region III,Pampanga,Guagua,RON 91
+Region III,Pampanga,Guagua,DIESEL
+Region III,Pampanga,Guagua,DIESEL PLUS
+Region III,Pampanga,Guagua,KEROSENE
+Region III,Pampanga,Magalang,RON 100
+Region III,Pampanga,Magalang,RON 97
+Region III,Pampanga,Magalang,RON 95
+Region III,Pampanga,Magalang,RON 91
+Region III,Pampanga,Magalang,DIESEL
+Region III,Pampanga,Magalang,DIESEL PLUS
+Region III,Pampanga,Magalang,KEROSENE
+Region III,Pampanga,Sta Ana,RON 100
+Region III,Pampanga,Sta Ana,RON 97
+Region III,Pampanga,Sta Ana,RON 95
+Region III,Pampanga,Sta Ana,RON 91
+Region III,Pampanga,Sta Ana,DIESEL
+Region III,Pampanga,Sta Ana,DIESEL PLUS
+Region III,Pampanga,Sta Ana,KEROSENE
+Region III,Pampanga,Sto Tomas,RON 100
+Region III,Pampanga,Sto Tomas,RON 97
+Region III,Pampanga,Sto Tomas,RON 95
+Region III,Pampanga,Sto Tomas,RON 91
+Region III,Pampanga,Sto Tomas,DIESEL
+Region III,Pampanga,Sto Tomas,DIESEL PLUS
+Region III,Pampanga,Sto Tomas,KEROSENE
+Region III,Pampanga,Candaba,RON 100
+Region III,Pampanga,Candaba,RON 97
+Region III,Pampanga,Candaba,RON 95
+Region III,Pampanga,Candaba,RON 91
+Region III,Pampanga,Candaba,DIESEL
+Region III,Pampanga,Candaba,DIESEL PLUS
+Region III,Pampanga,Candaba,KEROSENE
+Region III,Pampanga,San Simon,RON 100
+Region III,Pampanga,San Simon,RON 97
+Region III,Pampanga,San Simon,RON 95
+Region III,Pampanga,San Simon,RON 91
+Region III,Pampanga,San Simon,DIESEL
+Region III,Pampanga,San Simon,DIESEL PLUS
+Region III,Pampanga,San Simon,KEROSENE
+Region III,Tarlac,Tarlac City,RON 100
+Region III,Tarlac,Tarlac City,RON 97
+Region III,Tarlac,Tarlac City,RON 95
+Region III,Tarlac,Tarlac City,RON 91
+Region III,Tarlac,Tarlac City,DIESEL
+Region III,Tarlac,Tarlac City,DIESEL PLUS
+Region III,Tarlac,Tarlac City,KEROSENE
+Region III,Zambales,Olongapo City,RON 100
+Region III,Zambales,Olongapo City,RON 97
+Region III,Zambales,Olongapo City,RON 95
+Region III,Zambales,Olongapo City,RON 91
+Region III,Zambales,Olongapo City,DIESEL
+Region III,Zambales,Olongapo City,DIESEL PLUS
+Region III,Zambales,Olongapo City,KEROSENE
+Region III,Zambales,Subic,RON 100
+Region III,Zambales,Subic,RON 97
+Region III,Zambales,Subic,RON 95
+Region III,Zambales,Subic,RON 91
+Region III,Zambales,Subic,DIESEL
+Region III,Zambales,Subic,DIESEL PLUS
+Region III,Zambales,Subic,KEROSENE

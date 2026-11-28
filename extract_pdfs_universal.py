@@ -73,6 +73,7 @@ PROVINCE_FIXES = {
     "LAUNION": "LA UNION",
     "NUEVAVIZCAYA": "NUEVA VIZCAYA",
     "NUEVAECIJA": "NUEVA ECIJA",
+    "MOUNTAINPROVINCE": "MOUNTAIN PROVINCE",
 }
 
 ocr_engine = None
@@ -500,7 +501,7 @@ def resolve_city_name(words, master_template):
     column's vertical band. Matching against known city names prevents those
     labels from being concatenated into invalid locations.
     """
-    text_key = normalize_key(" ".join(w["text"] for w in words))
+    text_key = normalize_city_key(" ".join(w["text"] for w in words))
     if not text_key:
         return ""
     cities = sorted(
@@ -510,7 +511,7 @@ def resolve_city_name(words, master_template):
     )
     matches = [
         city for city in cities
-        if normalize_key(city) and normalize_key(city) in text_key
+        if normalize_city_key(city) and normalize_city_key(city) in text_key
     ]
     return matches[0] if matches else join_place(words, is_province=False)
 
@@ -518,6 +519,14 @@ def resolve_city_name(words, master_template):
 def normalize_key(value):
     """Normalize a location/product label for matching against the master template."""
     return re.sub(r"[^A-Z0-9]", "", str(value or "").upper())
+
+
+def normalize_city_key(value):
+    """Normalize common city variants: Baguio/Baguio City and City of X/X City."""
+    text = re.sub(r"\s+", " ", str(value or "").strip().upper())
+    text = re.sub(r"^CITY\s+OF\s+", "", text)
+    text = re.sub(r"\s+CITY$", "", text)
+    return normalize_key(text)
 
 
 def load_master_template():
@@ -556,11 +565,11 @@ def apply_master_order(df, week_col, master_template):
     # to resolve without a reliable province label.
     city_groups = {}
     for _, row in template.drop_duplicates(["Province", "City"]).iterrows():
-        city_groups.setdefault(norm(row["City"]), []).append((row["Region"], row["Province"], row["City"]))
+        city_groups.setdefault(normalize_city_key(row["City"]), []).append((row["Region"], row["Province"], row["City"]))
 
     canonical_rows = []
     for _, row in df.iterrows():
-        city_key = norm(row.get("City", ""))
+        city_key = normalize_city_key(row.get("City", ""))
         province_key = norm(row.get("Province", ""))
         candidates = city_groups.get(city_key, [])
         chosen = None
@@ -598,16 +607,17 @@ def apply_master_order(df, week_col, master_template):
 
 
 PROVINCE_TO_REGION = {
-    "AKLAN": "Western Visayas (REGION VI)", "ANTIQUE": "Western Visayas (REGION VI)",
-    "CAPIZ": "Western Visayas (REGION VI)", "GUIMARAS": "Western Visayas (REGION VI)",
-    "ILOILO": "Western Visayas (REGION VI)", "ILOILO CITY": "Western Visayas (REGION VI)",
-    "BOHOL": "Central Visayas (REGION VII)", "CEBU": "Central Visayas (REGION VII)",
-    "BILIRAN": "Eastern Visayas (REGION VIII)", "EASTERN SAMAR": "Eastern Visayas (REGION VIII)",
-    "LEYTE": "Eastern Visayas (REGION VIII)", "NORTHERN SAMAR": "Eastern Visayas (REGION VIII)",
-    "SAMAR": "Eastern Visayas (REGION VIII)", "WESTERN SAMAR": "Eastern Visayas (REGION VIII)",
-    "SOUTHERN LEYTE": "Eastern Visayas (REGION VIII)",
-    "NEGROS OCCIDENTAL": "Negros Island Region (NIR)",
-    "NEGROS ORIENTAL": "Negros Island Region (NIR)", "SIQUIJOR": "Negros Island Region (NIR)",
+    "ABRA": "CAR", "APAYAO": "CAR", "BENGUET": "CAR",
+    "IFUGAO": "CAR", "KALINGA": "CAR", "MOUNTAIN PROVINCE": "CAR",
+    "ILOCOS NORTE": "Region I", "ILOCOS SUR": "Region I",
+    "LA UNION": "Region I", "PANGASINAN": "Region I",
+    "BATANES": "Region II", "CAGAYAN": "Region II",
+    "ISABELA": "Region II", "NUEVA VIZCAYA": "Region II",
+    "QUIRINO": "Region II",
+    "AURORA": "Region III", "BATAAN": "Region III",
+    "BULACAN": "Region III", "NUEVA ECIJA": "Region III",
+    "PAMPANGA": "Region III", "TARLAC": "Region III",
+    "ZAMBALES": "Region III",
 }
 
 def region_for_province(province):

@@ -8,7 +8,7 @@ import pandas as pd
 
 EXTRACTED_DIR = Path("extracted")
 MASTER_ORDER_CSV = Path("master_order.csv")
-OUTPUT_CSV = Path("doe_visayas_prices.csv")
+OUTPUT_CSV = Path("doe_north_luzon_prices.csv")
 REGIONAL_OUTPUT_DIR = Path("regional_outputs")
 
 KEY_COLS = ["Region", "Province", "City", "Product"]
@@ -37,15 +37,37 @@ MONTH_PATTERN = (
 )
 
 REGION_FILES = {
-    "Region VI": "region_vi.csv",
-    "Region VII": "region_vii.csv",
-    "Region VIII": "region_viii.csv",
-    "NIR": "nir.csv",
+    "CAR": "car.csv",
+    "Region I": "region_i.csv",
+    "Region II": "region_ii.csv",
+    "Region III": "region_iii.csv",
 }
 
 
 def normalize_key(value):
     return re.sub(r"[^A-Z0-9]", "", str(value or "").upper())
+
+
+def normalize_city_key(value):
+    """Normalize city labels with common DOE aliases such as City of X and X City."""
+    text = re.sub(r"\s+", " ", str(value or "").strip().upper())
+    text = re.sub(r"^CITY\s+OF\s+", "", text)
+    text = re.sub(r"\s+CITY$", "", text)
+    return normalize_key(text)
+
+
+def normalize_region_key(value):
+    """Map common North Luzon region names to the master Region labels."""
+    text = re.sub(r"\s+", " ", str(value or "").strip().upper())
+    if "CORDILLERA" in text or text == "CAR":
+        return "CAR"
+    if "CENTRAL LUZON" in text or re.search(r"\bREGION\s+III\b", text) or "REGION 3" in text:
+        return "REGIONIII"
+    if "ILOCOS" in text or re.search(r"\bREGION\s+I\b", text) or "REGION 1" in text:
+        return "REGIONI"
+    if "CAGAYAN" in text or re.search(r"\bREGION\s+II\b", text) or "REGION 2" in text:
+        return "REGIONII"
+    return normalize_key(text)
 
 
 def week_sort_key(col_name):
@@ -306,7 +328,13 @@ def load_week_csv(csv_path):
     df = df[KEY_COLS + week_cols].copy()
 
     for col in KEY_COLS:
-        df[col + "_key"] = df[col].map(normalize_key)
+        if col == "City":
+            normalizer = normalize_city_key
+        elif col == "Region":
+            normalizer = normalize_region_key
+        else:
+            normalizer = normalize_key
+        df[col + "_key"] = df[col].map(normalizer)
 
     key_cols = [
         c + "_key"
@@ -355,7 +383,13 @@ def main():
     output = master.copy()
 
     for col in KEY_COLS:
-        output[col + "_key"] = output[col].map(normalize_key)
+        if col == "City":
+            normalizer = normalize_city_key
+        elif col == "Region":
+            normalizer = normalize_region_key
+        else:
+            normalizer = normalize_key
+        output[col + "_key"] = output[col].map(normalizer)
 
     all_week_cols = []
 
