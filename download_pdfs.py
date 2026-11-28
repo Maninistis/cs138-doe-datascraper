@@ -6,8 +6,8 @@ from html.parser import HTMLParser
 from urllib.parse import urlparse, unquote
 
 BOOKMARK_FILE = Path("doe_bookmarks.html")
-OUTPUT_DIR = Path("pdfs")
-TARGET_FOLDER = "DOE PDFs3"
+OUTPUT_DIR = Path("pdfs2024")
+TARGET_FOLDER = "DOE PDFs2"
 
 
 class BookmarkParser(HTMLParser):

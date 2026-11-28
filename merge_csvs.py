@@ -1,19 +1,35 @@
-
+import difflib
 import re
-from datetime import date
 from pathlib import Path
-
 import pandas as pd
 
-
 EXTRACTED_DIR = Path("extracted")
-MASTER_ORDER_CSV = Path("master_order.csv")
-OUTPUT_CSV = Path("doe_north_luzon_prices.csv")
-REGIONAL_OUTPUT_DIR = Path("regional_outputs")
-
+OUTPUT_CSV = Path("doe_north_luzon_prices1.csv")
 KEY_COLS = ["Region", "Province", "City", "Product"]
 
-DEFAULT_YEAR = 2026
+REGION_ORDER = [
+    "CAR",
+    "Region I",
+    "Region II",
+    "Region III",
+]
+
+REGION_PATTERNS = [
+    (re.compile(r"\bREGION\s*III\b", re.IGNORECASE), "Region III"),
+    (re.compile(r"\bREGION\s*II\b", re.IGNORECASE), "Region II"),
+    (re.compile(r"\bREGION\s*I\b", re.IGNORECASE), "Region I"),
+    (re.compile(r"\bCAR\b", re.IGNORECASE), "CAR"),
+]
+
+PRODUCT_ORDER = [
+    "RON 100",
+    "RON 97",
+    "RON 95",
+    "RON 91",
+    "DIESEL",
+    "DIESEL PLUS",
+    "KEROSENE",
+]
 
 MONTH_MAP = {
     "JAN": 1, "JANUARY": 1,
@@ -30,476 +46,239 @@ MONTH_MAP = {
     "DEC": 12, "DECEMBER": 12,
 }
 
-MONTH_PATTERN = (
-    r"JAN(?:UARY)?|FEB(?:RUARY)?|MAR(?:CH)?|APR(?:IL)?|"
-    r"MAY|JUN(?:E)?|JUL(?:Y)?|AUG(?:UST)?|"
-    r"SEP(?:TEMBER)?|OCT(?:OBER)?|NOV(?:EMBER)?|DEC(?:EMBER)?"
-)
 
-REGION_FILES = {
-    "CAR": "car.csv",
-    "Region I": "region_i.csv",
-    "Region II": "region_ii.csv",
-    "Region III": "region_iii.csv",
-}
-
-
-def normalize_key(value):
-    return re.sub(r"[^A-Z0-9]", "", str(value or "").upper())
-
-
-def normalize_city_key(value):
-    """Normalize city labels with common DOE aliases such as City of X and X City."""
-    text = re.sub(r"\s+", " ", str(value or "").strip().upper())
-    text = re.sub(r"^CITY\s+OF\s+", "", text)
-    text = re.sub(r"\s+CITY$", "", text)
-    return normalize_key(text)
-
-
-def normalize_region_key(value):
-    """Map common North Luzon region names to the master Region labels."""
-    text = re.sub(r"\s+", " ", str(value or "").strip().upper())
-    if "CORDILLERA" in text or text == "CAR":
-        return "CAR"
-    if "CENTRAL LUZON" in text or re.search(r"\bREGION\s+III\b", text) or "REGION 3" in text:
-        return "REGIONIII"
-    if "ILOCOS" in text or re.search(r"\bREGION\s+I\b", text) or "REGION 1" in text:
-        return "REGIONI"
-    if "CAGAYAN" in text or re.search(r"\bREGION\s+II\b", text) or "REGION 2" in text:
-        return "REGIONII"
-    return normalize_key(text)
+def normalize_region(value):
+    text = str(value).strip()
+    for pattern, canonical in REGION_PATTERNS:
+        if pattern.search(text):
+            return canonical
+    return text
 
 
 def week_sort_key(col_name):
-    """
-    Sort weekly columns by monitoring period END date.
+    upper = col_name.upper()
+    year_match = re.search(r"(?<!\d)(20\d{2})(?!\d)", upper)
+    year = int(year_match.group(1)) if year_match else 9999
 
-    Supports older DOE filenames:
-        petro_vis_2024-mar-26-apr-1
-        petro_vis_2024-jan-02-1
-        petro_vis_2023-jun-13-19-pdf
-        petro_vis_2023-feb-28-mar-06
-        petro_vis_2022-dec-27
-        petro_vis_2023-aug-08_0-pdf
+    month = 99
+    for token in re.findall(r"[A-Z]+", upper):
+        if token in MONTH_MAP:
+            month = MONTH_MAP[token]
+            break
 
-    Also supports:
-        October 27 to November 2, 2026
-        November 10-16, 2026
-        December 31, 2024 to January 6, 2025
-        DOE numeric filenames such as 102726
+    day_match = re.search(r"\b(\d{1,2})\b", upper)
+    day = int(day_match.group(1)) if day_match else 99
 
-    Returns a datetime.date for sorting.
-    """
+    return (year, month, day, col_name)
 
-    text = str(col_name).upper()
 
-    # -----------------------------------------------------
-    # 1. Older DOE filename format:
-    #    YYYY-MON-STARTDAY-ENDDAY
-    #    YYYY-MON-STARTDAY-ENDMON-ENDDAY
-    #
-    # Examples:
-    #    petro_vis_2023-jun-13-19-pdf
-    #    petro_vis_2024-mar-26-apr-1
-    #    petro_vis_2023-feb-28-mar-06
-    # -----------------------------------------------------
+def canonical_week_label(text):
+    upper = str(text).upper()
+    year_match = re.search(r"(?<!\d)(20\d{2})(?!\d)", upper)
+    if not year_match:
+        return str(text).strip()
 
-    filename_pattern = (
-        rf"(?<!\d)(20\d{{2}})[-_ ]"
-        rf"({MONTH_PATTERN})[-_ ]"
-        rf"(\d{{1,2}})"
-        rf"(?:[-_ ]"
-        rf"({MONTH_PATTERN})[-_ ]"
-        rf"(\d{{1,2}})"
-        rf"|[-_ ](\d{{1,2}}))"
+    year = int(year_match.group(1))
+    month_pattern = re.compile(
+        r"(?<![A-Z])("
+        r"JAN(?:UARY)?|FEB(?:RUARY)?|MAR(?:CH)?|APR(?:IL)?|"
+        r"MAY|JUN(?:E)?|JUL(?:Y)?|AUG(?:UST)?|SEP(?:TEMBER)?|"
+        r"OCT(?:OBER)?|NOV(?:EMBER)?|DEC(?:EMBER)?"
+        r")(?![A-Z])"
     )
+    month_matches = list(month_pattern.finditer(upper))
+    if not month_matches:
+        return str(text).strip()
 
-    match = re.search(filename_pattern, text)
+    def month_number(token):
+        token = token[:3]
+        return MONTH_MAP.get(token, 99)
 
-    if match:
-        start_year = int(match.group(1))
-        start_month = MONTH_MAP[match.group(2)]
-        start_day = int(match.group(3))
+    def day_after(match):
+        tail = upper[match.end():year_match.start()]
+        numbers = re.findall(r"(?<!\d)(\d{1,2})(?!\d)", tail)
+        for number in numbers:
+            day = int(number)
+            if 1 <= day <= 31:
+                return day
+        return None
 
-        end_month_name = match.group(4)
-        end_day_cross_month = match.group(5)
-        end_day_same_month = match.group(6)
+    def days_before(match):
+        head = upper[:match.start()]
+        numbers = [
+            int(number)
+            for number in re.findall(r"(?<!\d)(\d{1,2})(?!\d)", head)
+            if 1 <= int(number) <= 31
+        ]
+        if len(numbers) >= 2:
+            return numbers[-2], numbers[-1]
+        if numbers:
+            return numbers[-1], numbers[-1]
+        return None, None
 
-        if end_month_name:
-            end_month = MONTH_MAP[end_month_name]
-            end_day = int(end_day_cross_month)
+    first_match = month_matches[0]
+    start_month = month_number(first_match.group(1))
+    start_day = day_after(first_match)
+    if start_day is None:
+        start_day, end_day_before = days_before(first_match)
+        if start_day is None:
+            return str(text).strip()
+    else:
+        end_day_before = None
+
+    distinct_month_matches = []
+    for match in month_matches:
+        if not distinct_month_matches or match.group(1)[:3] != distinct_month_matches[-1].group(1)[:3]:
+            distinct_month_matches.append(match)
+
+    if len(distinct_month_matches) >= 2:
+        end_match = distinct_month_matches[1]
+        end_month = month_number(end_match.group(1))
+        end_day = day_after(end_match)
+    else:
+        if end_day_before is not None:
+            end_day = end_day_before
         else:
-            end_month = start_month
-            end_day = int(end_day_same_month)
+            tail = upper[first_match.end():year_match.start()]
+            numbers = [
+                int(number)
+                for number in re.findall(r"(?<!\d)(\d{1,2})(?!\d)", tail)
+                if 1 <= int(number) <= 31
+            ]
+            end_day = numbers[-1] if len(numbers) > 1 else start_day
+        end_month = start_month
 
-        end_year = start_year
+    if end_day is None:
+        return str(text).strip()
 
-        # Handle December-to-January transitions.
-        if end_month < start_month:
-            end_year += 1
-
-        try:
-            return date(end_year, end_month, end_day)
-        except ValueError:
-            pass
-
-    # -----------------------------------------------------
-    # 2. Older DOE filenames containing only one date:
-    #    YYYY-MON-DD
-    #
-    # Examples:
-    #    petro_vis_2022-dec-27
-    #    petro_vis_2023-dec-05-pdf
-    #    petro_vis_2024-jan-02
-    #
-    # Use the available date as the sorting date.
-    # -----------------------------------------------------
-
-    single_date_pattern = (
-        rf"(?<!\d)(20\d{{2}})[-_ ]"
-        rf"({MONTH_PATTERN})[-_ ]"
-        rf"(\d{{1,2}})(?!\d)"
+    month_names = {
+        1: "January", 2: "February", 3: "March", 4: "April",
+        5: "May", 6: "June", 7: "July", 8: "August",
+        9: "September", 10: "October", 11: "November", 12: "December",
+    }
+    if start_month == end_month:
+        if end_day == start_day:
+            return f"{month_names[start_month]} {start_day}, {year}"
+        return f"{month_names[start_month]} {start_day}-{end_day}, {year}"
+    return (
+        f"{month_names[start_month]} {start_day}-"
+        f"{month_names[end_month]} {end_day}, {year}"
     )
 
-    match = re.search(single_date_pattern, text)
 
-    if match:
-        year = int(match.group(1))
-        month = MONTH_MAP[match.group(2)]
-        day = int(match.group(3))
+def canonicalize_week_columns(df):
+    df = df.copy()
+    week_cols = [c for c in df.columns if c not in KEY_COLS]
+    renames = {}
+    for week_col in week_cols:
+        canonical = canonical_week_label(week_col)
+        renames.setdefault(week_col, canonical)
 
-        try:
-            return date(year, month, day)
-        except ValueError:
-            pass
-
-    # -----------------------------------------------------
-    # 3. Natural-language date formats.
-    #
-    # Examples:
-    #    October 27 to November 2, 2026
-    #    November 10-16, 2026
-    #    December 31, 2024 to January 6, 2025
-    # -----------------------------------------------------
-
-    month_day_pattern = (
-        rf"({MONTH_PATTERN})\s+(\d{{1,2}})"
-        rf"(?:,?\s*(20\d{{2}}))?"
-    )
-
-    matches = list(re.finditer(month_day_pattern, text))
-
-    if matches:
-        last = matches[-1]
-
-        month = MONTH_MAP[last.group(1)]
-        day = int(last.group(2))
-
-        years = re.findall(r"\b(20\d{2})\b", text)
-
-        if last.group(3):
-            year = int(last.group(3))
-        elif years:
-            year = int(years[-1])
-        else:
-            year = DEFAULT_YEAR
-
-        # Handle a year-crossing range if the ending
-        # month is earlier than the starting month.
-        if len(matches) >= 2:
-            first_month = MONTH_MAP[matches[0].group(1)]
-
-            if month < first_month and not last.group(3):
-                year += 1
-
-        try:
-            return date(year, month, day)
-        except ValueError:
-            pass
-
-        # Handle ranges such as November 10-16.
-        remaining = text[last.end():]
-
-        day_match = re.match(
-            r"\s*(?:-|TO|–|—)\s*(\d{1,2})",
-            remaining
-        )
-
-        if day_match:
-            try:
-                return date(
-                    year,
-                    month,
-                    int(day_match.group(1))
-                )
-            except ValueError:
-                pass
-
-    # -----------------------------------------------------
-    # 4. Numeric DOE filename format: MMDDYY
-    #
-    # Example:
-    #    102726 = October 27, 2026
-    # -----------------------------------------------------
-
-    numeric_match = re.search(
-        r"(?<!\d)(\d{6})(?!\d)",
-        text
-    )
-
-    if numeric_match:
-        raw = numeric_match.group(1)
-
-        month = int(raw[:2])
-        day = int(raw[2:4])
-        year = 2000 + int(raw[4:])
-
-        try:
-            return date(year, month, day)
-        except ValueError:
-            pass
-
-    # -----------------------------------------------------
-    # 5. Unrecognized dates go last when sorting descending.
-    # -----------------------------------------------------
-
-    return date.min
+    return df.rename(columns=renames)
 
 
-def load_master_template():
-    if not MASTER_ORDER_CSV.exists():
-        raise FileNotFoundError(
-            f"Missing {MASTER_ORDER_CSV}; keep it beside this script."
-        )
-
-    template = pd.read_csv(
-        MASTER_ORDER_CSV,
-        dtype=str
-    ).fillna("")
-
-    missing = [
-        c for c in KEY_COLS
-        if c not in template.columns
-    ]
-
-    if missing:
-        raise ValueError(
-            f"{MASTER_ORDER_CSV} is missing columns: {missing}"
-        )
-
-    template = template[KEY_COLS].apply(
-        lambda s: s.astype(str).str.strip()
-    )
-
-    if template.duplicated(KEY_COLS).any():
-        raise ValueError(
-            "master_order.csv contains duplicate "
-            "Region/Province/City/Product keys"
-        )
-
-    return template.reset_index(drop=True)
+def build_known_places(dfs):
+    known = {}
+    for df in dfs:
+        valid = df[(df["Province"] != "") & (df["City"] != "")]
+        for region, prov, city in valid[["Region", "Province", "City"]].drop_duplicates().itertuples(index=False):
+            known.setdefault(region, set()).add((prov, city))
+    return known
 
 
-def load_week_csv(csv_path):
-    df = pd.read_csv(
-        csv_path,
-        dtype=str
-    ).fillna("")
+def repair_place_columns(df, known_places):
+    df = df.copy()
 
-    missing = [
-        c for c in KEY_COLS
-        if c not in df.columns
-    ]
+    for idx, row in df.iterrows():
+        region = row["Region"]
+        prov = row["Province"]
+        city = row["City"]
 
-    if missing:
-        raise ValueError(
-            f"{csv_path} is missing key columns: {missing}"
-        )
-
-    week_cols = [
-        c for c in df.columns
-        if c not in KEY_COLS
-    ]
-
-    if not week_cols:
-        print(f"Skipped {csv_path.name}: no price column")
-        return None, []
-
-    df = df[KEY_COLS + week_cols].copy()
-
-    for col in KEY_COLS:
-        if col == "City":
-            normalizer = normalize_city_key
-        elif col == "Region":
-            normalizer = normalize_region_key
-        else:
-            normalizer = normalize_key
-        df[col + "_key"] = df[col].map(normalizer)
-
-    key_cols = [
-        c + "_key"
-        for c in KEY_COLS
-    ]
-
-    duplicates = df.duplicated(
-        key_cols,
-        keep=False
-    )
-
-    if duplicates.any():
-        print(
-            f"WARNING: {csv_path.name}: "
-            f"{duplicates.sum()} duplicate key rows; keeping first"
-        )
-
-        df = df.drop_duplicates(
-            key_cols,
-            keep="first"
-        )
-
-    return df, week_cols
-
-
-def main():
-    if not EXTRACTED_DIR.exists():
-        raise SystemExit(
-            f"Missing extracted folder: {EXTRACTED_DIR}"
-        )
-
-    csv_files = list(EXTRACTED_DIR.glob("*.csv"))
-
-    if not csv_files:
-        raise SystemExit(
-            f"No CSV files found in {EXTRACTED_DIR}"
-        )
-
-    master = load_master_template()
-
-    key_cols = [
-        c + "_key"
-        for c in KEY_COLS
-    ]
-
-    output = master.copy()
-
-    for col in KEY_COLS:
-        if col == "City":
-            normalizer = normalize_city_key
-        elif col == "Region":
-            normalizer = normalize_region_key
-        else:
-            normalizer = normalize_key
-        output[col + "_key"] = output[col].map(normalizer)
-
-    all_week_cols = []
-
-    # -----------------------------------------------------
-    # Merge all weekly CSV files.
-    # -----------------------------------------------------
-
-    for csv_path in csv_files:
-        week_df, week_cols = load_week_csv(csv_path)
-
-        if week_df is None:
+        if prov or not city or region not in known_places:
             continue
 
-        # Re-extraction of the same week replaces its old column.
-        for col in week_cols:
-            if col in output.columns:
-                output = output.drop(columns=[col])
+        candidates = known_places[region]
+        combined_map = {f"{p} {c}": (p, c) for p, c in candidates}
 
-        output = output.merge(
-            week_df[key_cols + week_cols],
-            on=key_cols,
-            how="left",
-            sort=False,
-            validate="one_to_one"
-        )
+        if city in combined_map:
+            df.at[idx, "Province"], df.at[idx, "City"] = combined_map[city]
+            continue
 
-        all_week_cols.extend(
-            c for c in week_cols
-            if c not in all_week_cols
-        )
+        suffix_matches = [(p, c) for p, c in candidates if city.endswith(f" {c}") or city == c]
+        if len(suffix_matches) == 1:
+            df.at[idx, "Province"], df.at[idx, "City"] = suffix_matches[0]
+            continue
 
-        matched = output[week_cols].notna().any(axis=1).sum()
+        close = difflib.get_close_matches(city, combined_map.keys(), n=1, cutoff=0.8)
+        if close:
+            df.at[idx, "Province"], df.at[idx, "City"] = combined_map[close[0]]
 
-        print(
-            f"Merged {csv_path.name}: "
-            f"{matched}/{len(master)} template rows matched"
-        )
+    return df
 
-    # -----------------------------------------------------
-    # Sort weekly columns newest to oldest.
-    # -----------------------------------------------------
 
-    ordered_weeks = sorted(
-        all_week_cols,
-        key=week_sort_key,
-        reverse=True
+def coalesce_by_keys(df, week_cols):
+    cleaned = df.copy()
+    for col in week_cols:
+        cleaned[col] = cleaned[col].replace({"-": pd.NA, "": pd.NA})
+
+    grouped = cleaned.groupby(KEY_COLS, as_index=False, dropna=False)[week_cols].first()
+    return grouped.fillna("-")
+
+
+def sort_master_df(df):
+    region_rank = {r: i for i, r in enumerate(REGION_ORDER)}
+    product_rank = {p: i for i, p in enumerate(PRODUCT_ORDER)}
+
+    df = df.copy()
+    df["_r"] = df["Region"].map(lambda x: region_rank.get(x, 999))
+    df["_p"] = df["Product"].map(lambda x: product_rank.get(x, 999))
+    df = df.sort_values(
+        by=["_r", "Region", "Province", "City", "_p"],
+        kind="stable",
     )
-
-    print("\nWEEKLY COLUMN ORDER (NEWEST TO OLDEST)")
-    print("-" * 65)
-
-    for col in ordered_weeks:
-        sort_date = week_sort_key(col)
-
-        if sort_date == date.min:
-            print(f"UNRECOGNIZED DATE: {col}")
-        else:
-            print(f"{sort_date} | {col}")
-
-    print("-" * 65)
-
-    # -----------------------------------------------------
-    # Arrange final output.
-    # -----------------------------------------------------
-
-    output = output[
-        KEY_COLS + ordered_weeks
-    ]
-
-    output[ordered_weeks] = (
-        output[ordered_weeks]
-        .fillna("")
-        .replace("", "-")
-    )
-
-    output.to_csv(
-        OUTPUT_CSV,
-        index=False
-    )
-
-    print(
-        f"\nSaved {OUTPUT_CSV}: "
-        f"{len(output)} rows, "
-        f"{len(ordered_weeks)} week columns"
-    )
-
-    # -----------------------------------------------------
-    # Generate regional CSV files.
-    # -----------------------------------------------------
-
-    REGIONAL_OUTPUT_DIR.mkdir(
-        parents=True,
-        exist_ok=True
-    )
-
-    for region, filename in REGION_FILES.items():
-        regional = output[
-            output["Region"] == region
-        ].copy()
-
-        regional.to_csv(
-            REGIONAL_OUTPUT_DIR / filename,
-            index=False
-        )
-
-        print(
-            f"Saved {REGIONAL_OUTPUT_DIR / filename}: "
-            f"{len(regional)} rows"
-        )
+    return df.drop(columns=["_r", "_p"]).reset_index(drop=True)
 
 
-if __name__ == "__main__":
-    main()
+csv_files = sorted(EXTRACTED_DIR.glob("*.csv"))
+if not csv_files:
+    raise SystemExit(f"No CSV files found in {EXTRACTED_DIR}")
+
+loaded_dfs = []
+for csv_path in csv_files:
+    df = pd.read_csv(csv_path, dtype=str)
+    for col in KEY_COLS:
+        if col in df.columns:
+            df[col] = df[col].fillna("").str.strip()
+    if "Region" in df.columns:
+        df["Region"] = df["Region"].map(normalize_region)
+    df = canonicalize_week_columns(df)
+    week_cols = [c for c in df.columns if c not in KEY_COLS]
+    if week_cols:
+        loaded_dfs.append((csv_path.name, df[KEY_COLS + week_cols], week_cols))
+
+known_places = build_known_places([df for _, df, _ in loaded_dfs])
+prepared_dfs = []
+
+for name, df, week_cols in loaded_dfs:
+    df = repair_place_columns(df, known_places)
+    df = coalesce_by_keys(df, week_cols)
+    prepared_dfs.append(df)
+    print(f"Prepared {name} ({len(df)} rows)")
+
+if prepared_dfs:
+    master_df = pd.concat(prepared_dfs, ignore_index=True, sort=False)
+else:
+    master_df = pd.DataFrame(columns=KEY_COLS)
+
+all_week_cols = sorted(
+    [c for c in master_df.columns if c not in KEY_COLS],
+    key=week_sort_key,
+)
+master_df = coalesce_by_keys(master_df, all_week_cols)
+
+master_df = master_df[KEY_COLS + all_week_cols]
+master_df = sort_master_df(master_df)
+master_df = master_df.fillna("-")
+
+master_df.to_csv(OUTPUT_CSV, index=False)
+print(f"Saved {OUTPUT_CSV} ({len(master_df)} rows, {len(all_week_cols)} weeks)")

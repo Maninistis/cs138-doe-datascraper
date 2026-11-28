@@ -9,10 +9,10 @@ import pandas as pd
 import pdfplumber
 from rapidocr_onnxruntime import RapidOCR
 
-INPUT_FOLDER = Path("pdfs")
+INPUT_FOLDER = Path("pdfs2024")
 MASTER_ORDER = Path("master_order.csv")
 OUTPUT_DIRS = {
-    "auto": Path("extracted"),
+    "auto": Path("extracted2024"),
     "text": Path("extracted1"),
     "ocr": Path("extracted2"),
     "rapidocr": Path("extracted_ocr"),
