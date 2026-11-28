@@ -9,10 +9,10 @@ import pandas as pd
 import pdfplumber
 from rapidocr_onnxruntime import RapidOCR
 
-INPUT_FOLDER = Path("pdfs")
+INPUT_FOLDER = Path("pdfs2022")
 MASTER_ORDER = Path("master_order.csv")
 OUTPUT_DIRS = {
-    "auto": Path("extracted"),
+    "auto": Path("extracted3"),
     "text": Path("extracted1"),
     "ocr": Path("extracted2"),
     "rapidocr": Path("extracted_ocr"),
@@ -291,69 +291,6 @@ def match_master_place(city, region, province, master_places):
     if province_candidates:
         return next(iter(province_candidates))[0], ""
     return province, ""
-
-
-def match_master_province(province, region, fallback=""):
-    """Canonicalize OCR province text and never invent a province."""
-    candidates = {
-        candidate_province
-        for candidate_province, _ in MASTER_PLACES.get(region_match_key(region), set())
-    }
-    if not candidates:
-        return fallback or province
-
-    province_keys = place_match_keys(province)
-    exact = {
-        candidate
-        for candidate in candidates
-        if place_match_keys(candidate).intersection(province_keys)
-        or place_match_tokens(candidate) == place_match_tokens(province)
-    }
-    if len(exact) == 1:
-        return next(iter(exact))
-
-    scored = []
-    for candidate in candidates:
-        for candidate_key in place_match_keys(candidate):
-            for province_key in province_keys:
-                distance = edit_distance_at_most_two(province_key, candidate_key)
-                similarity = difflib.SequenceMatcher(
-                    None, province_key, candidate_key
-                ).ratio()
-                if distance <= 2 and similarity >= 0.72:
-                    scored.append((distance, -similarity, candidate))
-
-    if scored:
-        best_score = min(scored, key=lambda item: (item[0], item[1]))
-        best_matches = {
-            item[2] for item in scored
-            if (item[0], item[1]) == (best_score[0], best_score[1])
-        }
-        if len(best_matches) == 1:
-            return next(iter(best_matches))
-
-    return fallback or province
-
-
-def infer_page_province(words, region, fallback=""):
-    """Find at most one province clearly visible on the page."""
-    candidates = {
-        candidate_province
-        for candidate_province, _ in MASTER_PLACES.get(region_match_key(region), set())
-    }
-    if not candidates:
-        return fallback
-
-    page_key = place_match_key(" ".join(word["text"] for word in words))
-    found = set()
-    for candidate in candidates:
-        candidate_keys = place_match_keys(candidate)
-        if any(len(key) >= 5 and key in page_key for key in candidate_keys):
-            found.add(candidate)
-
-    if len(found) == 1:
-        return next(iter(found))
-    return fallback
 
 
 def fill_missing_city_gaps(block_places):
@@ -1143,7 +1080,7 @@ def parse_pdf(pdf_path, week_col, mode="auto"):
 
     with fitz.open(pdf_path) as fitz_doc, pdfplumber.open(pdf_path) as pdf:
         last_region = ""
-        last_province = ""
+        last_province_by_region = {}
         last_bounds = None
 
         for idx, page in enumerate(pdf.pages):
@@ -1164,8 +1101,6 @@ def parse_pdf(pdf_path, week_col, mode="auto"):
                 region = infer_region_from_city_labels(words, previous_region) or previous_region
                 if region:
                     last_region = region
-
-            page_province = infer_page_province(words, region, last_province)
 
             bounds = find_column_bounds(words, fallback_bounds=last_bounds)
             if not bounds:
@@ -1246,8 +1181,6 @@ def parse_pdf(pdf_path, week_col, mode="auto"):
                 ]
                 raw_block_provs.append(join_place(p_words, is_province=True))
 
-            unique_page_provs = [p for p in dict.fromkeys(raw_block_provs) if p]
-
             block_places = []
             for block, raw_prov in zip(blocks, raw_block_provs):
                 block_region = region
@@ -1269,28 +1202,11 @@ def parse_pdf(pdf_path, week_col, mode="auto"):
                 ]
                 raw_city = join_place(c_words, is_province=False)
 
-                if len(unique_page_provs) == 1:
-                    prov_name = match_master_province(
-                        unique_page_provs[0],
-                        block_region,
-                        page_province or last_province,
-                    )
-                    last_province = prov_name
-                elif raw_prov:
-                    prov_name = match_master_province(
-                        raw_prov,
-                        block_region,
-                        page_province or last_province,
-                    )
-                    last_province = prov_name
-                else:
-                    prov_name = match_master_province(
-                        page_province,
-                        block_region,
-                        last_province,
-                    )
-                    if prov_name:
-                        last_province = prov_name
+                region_key = region_match_key(block_region)
+                prov_name = last_province_by_region.get(region_key, "")
+                if raw_prov:
+                    prov_name = raw_prov
+                    last_province_by_region[region_key] = prov_name
 
                 city_labels = []
                 for city_line in group_words_into_lines(c_words, y_tol=12):
@@ -1326,6 +1242,7 @@ def parse_pdf(pdf_path, week_col, mode="auto"):
                         ),
                     ):
                         assigned_rows = rows_by_place[label_place]
+                        last_province_by_region[region_key] = label_place[0]
                         block_places.append({
                             "block": assigned_rows,
                             "province": label_place[0],
@@ -1341,7 +1258,7 @@ def parse_pdf(pdf_path, week_col, mode="auto"):
                 if distinct_labels:
                     prov_name, city_name = next(iter(distinct_labels))
                 if prov_name:
-                    last_province = prov_name
+                    last_province_by_region[region_key] = prov_name
                 block_places.append({
                     "block": block,
                     "province": prov_name,
