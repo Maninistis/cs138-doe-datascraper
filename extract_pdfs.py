@@ -293,6 +293,69 @@ def match_master_place(city, region, province, master_places):
     return province, ""
 
 
+def match_master_province(province, region, fallback=""):
+    """Canonicalize OCR province text and never invent a province."""
+    candidates = {
+        candidate_province
+        for candidate_province, _ in MASTER_PLACES.get(region_match_key(region), set())
+    }
+    if not candidates:
+        return fallback or province
+
+    province_keys = place_match_keys(province)
+    exact = {
+        candidate
+        for candidate in candidates
+        if place_match_keys(candidate).intersection(province_keys)
+        or place_match_tokens(candidate) == place_match_tokens(province)
+    }
+    if len(exact) == 1:
+        return next(iter(exact))
+
+    scored = []
+    for candidate in candidates:
+        for candidate_key in place_match_keys(candidate):
+            for province_key in province_keys:
+                distance = edit_distance_at_most_two(province_key, candidate_key)
+                similarity = difflib.SequenceMatcher(
+                    None, province_key, candidate_key
+                ).ratio()
+                if distance <= 2 and similarity >= 0.72:
+                    scored.append((distance, -similarity, candidate))
+
+    if scored:
+        best_score = min(scored, key=lambda item: (item[0], item[1]))
+        best_matches = {
+            item[2] for item in scored
+            if (item[0], item[1]) == (best_score[0], best_score[1])
+        }
+        if len(best_matches) == 1:
+            return next(iter(best_matches))
+
+    return fallback or province
+
+
+def infer_page_province(words, region, fallback=""):
+    """Find at most one province clearly visible on the page."""
+    candidates = {
+        candidate_province
+        for candidate_province, _ in MASTER_PLACES.get(region_match_key(region), set())
+    }
+    if not candidates:
+        return fallback
+
+    page_key = place_match_key(" ".join(word["text"] for word in words))
+    found = set()
+    for candidate in candidates:
+        candidate_keys = place_match_keys(candidate)
+        if any(len(key) >= 5 and key in page_key for key in candidate_keys):
+            found.add(candidate)
+
+    if len(found) == 1:
+        return next(iter(found))
+    return fallback
+
+
 def fill_missing_city_gaps(block_places):
     for block_index, place in enumerate(block_places):
         if place["city"] or place["raw_city"]:
@@ -1102,6 +1165,8 @@ def parse_pdf(pdf_path, week_col, mode="auto"):
                 if region:
                     last_region = region
 
+            page_province = infer_page_province(words, region, last_province)
+
             bounds = find_column_bounds(words, fallback_bounds=last_bounds)
             if not bounds:
                 print(f"  p{idx + 1} [{source}]: no bounds")
@@ -1205,13 +1270,27 @@ def parse_pdf(pdf_path, week_col, mode="auto"):
                 raw_city = join_place(c_words, is_province=False)
 
                 if len(unique_page_provs) == 1:
-                    prov_name = unique_page_provs[0]
+                    prov_name = match_master_province(
+                        unique_page_provs[0],
+                        block_region,
+                        page_province or last_province,
+                    )
                     last_province = prov_name
                 elif raw_prov:
-                    prov_name = raw_prov
+                    prov_name = match_master_province(
+                        raw_prov,
+                        block_region,
+                        page_province or last_province,
+                    )
                     last_province = prov_name
                 else:
-                    prov_name = last_province
+                    prov_name = match_master_province(
+                        page_province,
+                        block_region,
+                        last_province,
+                    )
+                    if prov_name:
+                        last_province = prov_name
 
                 city_labels = []
                 for city_line in group_words_into_lines(c_words, y_tol=12):
